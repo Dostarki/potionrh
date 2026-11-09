@@ -430,24 +430,53 @@ function questUrl(kind) {
   if (kind === "like") return links.like_url;
   return "https://x.com/intent/post?text=" + encodeURIComponent(links.share_text + " " + links.share_url);
 }
-function deepLink(url) {
+function isMobile() {
+  const ua = navigator.userAgent || "";
+  return /Android|iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+function xAction(url) {
   try {
     const u = new URL(url);
-    if (!/(^|\.)(x|twitter)\.com$/.test(u.hostname)) return null;
+    if (!/(^|\.)(x|twitter)\.com$/i.test(u.hostname)) return null;
     const p = u.pathname.split("/").filter(Boolean);
-    if (p[0] === "intent") return (p[1] === "post" || p[1] === "tweet") ? "twitter://post?message=" + encodeURIComponent(u.searchParams.get("text") || "") : null;
-    if (p.length >= 3 && p[1] === "status") return "twitter://status?id=" + p[2];
-    if (p.length === 1) return "twitter://user?screen_name=" + p[0];
-  } catch (err) { /* ignore */ }
-  return null;
+    const statusAt = p.indexOf("status");
+    if (statusAt >= 0 && /^\d+$/.test(p[statusAt + 1] || "")) return { kind:"status", id:p[statusAt + 1] };
+    if (p[0] === "intent") {
+      const text = u.searchParams.get("text") || "";
+      const tweetId = u.searchParams.get("tweet_id") || "";
+      const name = (u.searchParams.get("screen_name") || "").replace(/^@/, "");
+      if (p[1] === "post" || p[1] === "tweet") return { kind:"post", text };
+      if (/^\d+$/.test(tweetId)) return { kind:"status", id:tweetId };
+      if (name) return { kind:"user", name };
+    }
+    if (p.length === 1 && !/^(home|explore|search|i|share|messages|settings|compose)$/i.test(p[0])) {
+      return { kind:"user", name:p[0].replace(/^@/, "") };
+    }
+    return { kind:"app" };
+  } catch (err) { return null; }
+}
+function iosXUrl(action) {
+  if (action.kind === "status") return "twitter://status?id=" + encodeURIComponent(action.id);
+  if (action.kind === "post") return "twitter://post?message=" + encodeURIComponent(action.text);
+  if (action.kind === "user") return "twitter://user?screen_name=" + encodeURIComponent(action.name);
+  return "twitter://";
 }
 function openX(url) {
-  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const deep = mobile ? deepLink(url) : null;
-  if (!deep) { window.open(url, "_blank", "noopener"); return; }
-  const fallback = setTimeout(() => { if (!document.hidden) window.open(url, "_blank", "noopener"); }, 1500);
-  addEventListener("visibilitychange", () => { if (document.hidden) clearTimeout(fallback); }, { once:true });
-  window.location.href = deep;
+  if (!isMobile()) { window.open(url, "_blank", "noopener"); return; }
+  let href = url;
+  if (/Android/i.test(navigator.userAgent)) {
+    try {
+      const u = new URL(url);
+      if (/(^|\.)(x|twitter)\.com$/i.test(u.hostname)) {
+        href = "intent://" + u.host + u.pathname + u.search + "#Intent;scheme=https;package=com.twitter.android;end";
+      }
+    } catch (err) { /* keep href */ }
+  } else {
+    const action = xAction(url);
+    if (action) href = iosXUrl(action);
+  }
+  try { (window.top || window).location.href = href; }
+  catch (err) { window.location.href = href; }
 }
 function completeQuest(kind, tx, ty) {
   progress[kind] = true;
