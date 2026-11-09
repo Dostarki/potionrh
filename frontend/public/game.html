@@ -214,6 +214,7 @@ function pressKey(code) { if (!held.has(code)) edge.add(code); held.add(code); }
 addEventListener("keydown", (e) => {
   if (e.target && e.target.tagName === "INPUT") return;
   pressKey(e.code);
+  if (JUMP.includes(e.code)) armQuestPopup();
   if (["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault();
 });
 addEventListener("keyup", (e) => held.delete(e.code));
@@ -487,10 +488,19 @@ function showXCard(url, label) {
   document.getElementById("xModal").classList.remove("hide");
   held.clear();
 }
+let openedXUrl = "";
+let openedXAt = 0;
 function openX(url, label) {
   if (!isMobile()) {
+    const now = Date.now();
+    if (url === openedXUrl && now - openedXAt < 2500) return;
     const popped = window.open(url, "_blank");
-    if (popped) { popped.opener = null; return; }
+    if (popped) {
+      popped.opener = null;
+      openedXUrl = url;
+      openedXAt = now;
+      return;
+    }
     showXCard(url, label);
     return;
   }
@@ -508,6 +518,23 @@ function openX(url, label) {
   }
   try { (window.top || window).location.href = href; }
   catch (err) { window.location.href = href; }
+}
+function armQuestPopup() {
+  if (isMobile() || !mario.onGround) return;
+  const x0 = Math.floor(mario.x / T);
+  const x1 = Math.floor((mario.x + mario.w - 0.001) / T);
+  const mid = Math.floor((mario.x + mario.w / 2) / T);
+  const top = Math.floor((mario.y - 7 * T) / T);
+  for (let ty = Math.floor((mario.y - 1) / T); ty >= top; ty--) {
+    for (const tx of [mid, x0, x1]) {
+      const quest = QUESTS.find((q) => q.tx === tx && q.ty === ty);
+      const tile = at(tx, ty);
+      if (quest && (QUEST_TILES[tile] || tile === USED)) {
+        openX(questUrl(quest.kind), X_LABEL[quest.kind]);
+        return;
+      }
+    }
+  }
 }
 function completeQuest(kind, tx, ty) {
   progress[kind] = true;
