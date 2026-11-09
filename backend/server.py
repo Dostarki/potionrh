@@ -50,6 +50,7 @@ INDEXES: dict[str, list[IndexModel]] = {
         IndexModel([("last_seen", DESCENDING)], name="last_seen_desc"),
         IndexModel([("created_at", DESCENDING)], name="created_at_desc"),
         IndexModel([("ref_code", ASCENDING)], name="ref_code", unique=True, partialFilterExpression={"ref_code": {"$type": "string"}}),
+        IndexModel([("evm_key", ASCENDING)], name="evm_key", unique=True, partialFilterExpression={"evm_key": {"$type": "string"}}),
         IndexModel([("invites", DESCENDING)], name="invites_desc"),
     ],
     "settings": [
@@ -210,6 +211,16 @@ def to_player(doc: dict) -> Player:
     return Player(**{**doc, "invites": invites, "points": invites * POINTS_PER_INVITE})
 
 
+async def find_wallet_owner(evm_key: str) -> dict | None:
+    return await get_db().players.find_one(
+        {"$or": [
+            {"evm_key": evm_key},
+            {"evm_address": {"$regex": "^" + re.escape(evm_key) + "$", "$options": "i"}},
+        ]},
+        {"_id": 0, "nick_key": 1},
+    )
+
+
 async def ensure_ref_code(key: str) -> dict:
     while True:
         code = f"PRH{secrets.randbelow(100000):05d}"
@@ -232,12 +243,12 @@ async def register_player(input: PlayerCreate):
         raise HTTPException(status_code=422, detail="Username must be 2-12 letters, digits or _")
     key = nick.lower()
     now = datetime.now(timezone.utc).isoformat()
-    updates = {"last_seen": now}
+    evm_key = None
     if input.evm_address is not None:
         evm = input.evm_address.strip()
         if not EVM_RE.match(evm):
             raise HTTPException(status_code=422, detail="EVM address must be 0x followed by 40 hex characters")
-        updates["evm_address"] = evm
+        evm_key = evm.lower()
     ref = (input.referral_code or "").strip().upper()
     if ref:
         if not REF_RE.match(ref):
@@ -247,28 +258,51 @@ async def register_player(input: PlayerCreate):
             raise HTTPException(status_code=422, detail="Referral code not found")
         if referrer["nick_key"] == key:
             raise HTTPException(status_code=422, detail="You cannot use your own code")
-    doc = await get_db().players.find_one_and_update(
-        {"nick_key": key},
-        {
-            "$set": updates,
-            "$inc": {"visits": 1},
-            "$setOnInsert": {
-                "id": str(uuid.uuid4()),
-                "nick": nick,
-                "nick_key": key,
-                "avatar_url": f"https://unavatar.io/x/{key}",
-                "created_at": now,
-                "invites": 0,
-                "progress": empty_progress(),
-            },
-        },
-        upsert=True,
-        return_document=ReturnDocument.AFTER,
-        projection={"_id": 0},
-    )
+    existing = await get_db().players.find_one({"nick_key": key}, {"_id": 0})
+    if evm_key:
+        owner = await find_wallet_owner(evm_key)
+        if owner and owner["nick_key"] != key:
+            raise HTTPException(status_code=409, detail="Wallet already registered")
+        if existing and existing.get("evm_address"):
+            raise HTTPException(status_code=409, detail="Username already registered")
+    if existing:
+        updates = {"last_seen": now}
+        if evm_key and not existing.get("evm_address"):
+            updates["evm_address"] = evm_key
+            updates["evm_key"] = evm_key
+        try:
+            doc = await get_db().players.find_one_and_update(
+                {"nick_key": key},
+                {"$set": updates, "$inc": {"visits": 1}},
+                return_document=ReturnDocument.AFTER,
+                projection={"_id": 0},
+            )
+        except DuplicateKeyError:
+            raise HTTPException(status_code=409, detail="Wallet already registered")
+    else:
+        doc = {
+            "id": str(uuid.uuid4()),
+            "nick": nick,
+            "nick_key": key,
+            "avatar_url": f"https://unavatar.io/x/{key}",
+            "created_at": now,
+            "last_seen": now,
+            "visits": 1,
+            "invites": 0,
+            "progress": empty_progress(),
+        }
+        if evm_key:
+            doc["evm_address"] = evm_key
+            doc["evm_key"] = evm_key
+        try:
+            await get_db().players.insert_one(doc)
+        except DuplicateKeyError as exc:
+            detail = "Wallet already registered" if "evm_key" in str(exc) else "Username already registered"
+            raise HTTPException(status_code=409, detail=detail)
+        doc.pop("_id", None)
     if not doc.get("ref_code"):
         doc = await ensure_ref_code(key)
-    if ref and input.evm_address is not None:
+    if ref and evm_key:
         claimed = await get_db().players.find_one_and_update(
             {"nick_key": key, "referred_by": {"$exists": False}},
             {"$set": {"referred_by": ref}},
@@ -288,6 +322,16 @@ async def allowlist():
     for t in top:
         t["points"] = t["invites"] * POINTS_PER_INVITE
     return {"latest": latest, "leaders": top}
+
+
+@api_router.get("/wallets/{address}")
+async def wallet_taken(address: str):
+    evm = address.strip()
+    if not EVM_RE.match(evm):
+        raise HTTPException(status_code=422, detail="EVM address must be 0x followed by 40 hex characters")
+    if not await find_wallet_owner(evm.lower()):
+        raise HTTPException(status_code=404, detail="Wallet not registered")
+    return {"taken": True}
 
 
 @api_router.get("/players/{nick}", response_model=Player)

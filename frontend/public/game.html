@@ -1149,14 +1149,37 @@ function openGame(player) {
   state = "card"; cardT = 0;
   c.focus();
 }
-function checkNick(raw) {
+async function checkNick(raw) {
   const clean = raw.trim().replace(/^@+/, "");
   if (!/^[A-Za-z0-9_]{2,12}$/.test(clean)) { errBox.textContent = "2-12 CHARS: LETTERS, DIGITS, _"; return; }
-  showGate(clean);
+  errBox.textContent = "";
+  goBtn.disabled = true;
+  try {
+    const res = await fetch(API + "/api/players/" + encodeURIComponent(clean));
+    if (res.ok) { errBox.textContent = "USERNAME ALREADY REGISTERED"; return; }
+    if (res.status !== 404) { errBox.textContent = "COULD NOT CHECK, TRY AGAIN"; return; }
+    showGate(clean);
+  } catch (err) {
+    errBox.textContent = "COULD NOT CHECK, TRY AGAIN";
+  } finally {
+    goBtn.disabled = false;
+  }
 }
-function checkEvm(raw) {
-  if (!/^0x[a-fA-F0-9]{40}$/.test(raw.trim())) { errBox.textContent = "ENTER A VALID 0x ADDRESS (42 CHARS)"; return; }
-  setStep(2);
+async function checkEvm(raw) {
+  const evm = raw.trim();
+  if (!/^0x[a-fA-F0-9]{40}$/.test(evm)) { errBox.textContent = "ENTER A VALID 0x ADDRESS (42 CHARS)"; return; }
+  errBox.textContent = "";
+  goBtn.disabled = true;
+  try {
+    const res = await fetch(API + "/api/wallets/" + encodeURIComponent(evm));
+    if (res.ok) { errBox.textContent = "WALLET ALREADY REGISTERED"; return; }
+    if (res.status !== 404) { errBox.textContent = "COULD NOT CHECK, TRY AGAIN"; return; }
+    setStep(2);
+  } catch (err) {
+    errBox.textContent = "COULD NOT CHECK, TRY AGAIN";
+  } finally {
+    goBtn.disabled = false;
+  }
 }
 async function registerPlayer() {
   const ref = refInput.value.trim().toUpperCase();
@@ -1167,7 +1190,7 @@ async function registerPlayer() {
     const body = { nick: pendingNick, evm_address: evmInput.value.trim() };
     if (ref) body.referral_code = ref;
     const res = await fetch(API + "/api/players", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (res.status === 422) { const d = await res.json(); errBox.textContent = String(d.detail || "INVALID").toUpperCase(); return; }
+    if (res.status === 422 || res.status === 409) { const d = await res.json(); errBox.textContent = String(d.detail || "INVALID").toUpperCase(); return; }
     if (!res.ok) throw new Error("bad status " + res.status);
     openGame(await res.json());
   } catch (err) {
