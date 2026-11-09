@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>PotionRH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+<style>
+html,body{margin:0;height:100%;background:#3fcde6;background-image:radial-gradient(rgba(20,140,180,.25) 1px,transparent 1px);background-size:14px 14px;display:grid;place-items:center;overflow:hidden}
+canvas#c{width:min(100vw,calc(100vh * 256 / 240));height:min(100vh,calc(100vw * 240 / 256));image-rendering:pixelated;image-rendering:crisp-edges;background:#bfe6ff;outline:none;touch-action:none;box-shadow:0 0 0 4px #fff,0 0 0 8px #f3a6c8,0 18px 40px rgba(160,80,130,.35)}
+#gate{position:fixed;inset:0;display:grid;place-items:center;font-family:"Press Start 2P",monospace;z-index:7;overflow:hidden}
+#gate.hide{display:none}
+#bg{position:absolute;inset:0;width:100%;height:100%}
+.card{position:relative;width:min(92vw,420px);background:#fff6fa;border:4px solid #f3a6c8;box-shadow:0 0 0 4px #fff,10px 10px 0 rgba(20,90,110,.35);padding:22px 24px 24px;text-align:center}
+.card .potion{width:92px;height:auto;display:block;margin:-70px auto 4px;filter:drop-shadow(0 8px 10px rgba(20,60,80,.35));animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-8px) rotate(3deg)}}
+.card h1{margin:0 0 6px;font-size:22px;color:#ec4f86;text-shadow:3px 3px 0 #fbd2e4;letter-spacing:1px}
+.card .sub{margin:0 0 18px;font-size:9px;color:#b05a8a}
+.card label{display:block;font-size:10px;color:#7a3e78;margin-bottom:10px;text-align:left}
+.row{display:flex;gap:10px;align-items:stretch}
+.row .at{font-size:14px;color:#ec4f86;background:#ffe4ee;border:3px solid #f3a6c8;display:grid;place-items:center;width:40px}
+#nick,#evm,#refin{flex:1;min-width:0;font:inherit;font-size:12px;padding:12px 10px;color:#7a3e78;background:#fff;border:3px solid #f3a6c8;outline:none;text-transform:lowercase}
+#evm{font-size:9px;text-transform:none}
+#refin{text-transform:uppercase}
+#nick:focus,#evm:focus,#refin:focus{border-color:#ec4f86;box-shadow:inset 0 0 0 2px #ffd6e8}
+.step{display:none}.step.on{display:block;animation:pop .25s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.who{font-size:9px;color:#b05a8a;margin:0 0 12px;text-align:left}
+#back{margin-top:10px;background:none;border:0;font:inherit;font-size:8px;color:#b05a8a;cursor:pointer;text-decoration:underline}
+#gate{background:#3fcde6}
+#go{margin-top:16px;width:100%;font:inherit;font-size:12px;padding:14px 10px;cursor:pointer;color:#fff;background:#ffbe78;border:3px solid #c06a4a;box-shadow:inset 3px 3px 0 #ffe4b8,inset -3px -3px 0 #e89060,0 5px 0 #c06a4a;text-shadow:2px 2px 0 #c06a4a;transition:transform .08s,box-shadow .08s}
+#go:hover{background:#ffd49a}
+#go:active{transform:translateY(4px);box-shadow:inset 3px 3px 0 #ffe4b8,inset -3px -3px 0 #e89060,0 1px 0 #c06a4a}
+#go:disabled{opacity:.6;cursor:wait}
+#err{min-height:14px;margin-top:12px;font-size:8px;color:#d6336c;line-height:1.6}
+#touch{display:none;position:fixed;inset:auto 0 0 0;justify-content:space-between;padding:0 12px 14px;pointer-events:none;z-index:4;font-family:"Press Start 2P",monospace}
+#touch .pad{display:flex;gap:10px;pointer-events:auto}
+#touch button{width:64px;height:64px;border-radius:50%;border:3px solid #c06a4a;background:rgba(255,190,120,.85);color:#fff;font:inherit;font-size:11px;text-shadow:2px 2px 0 #c06a4a;box-shadow:0 4px 0 #c06a4a;touch-action:none;user-select:none;-webkit-user-select:none}
+#touch button:active{transform:translateY(3px);box-shadow:0 1px 0 #c06a4a}
+@media (pointer:coarse){#touch{display:flex}}
+#alBtn{position:fixed;top:10px;left:10px;z-index:4;font-family:"Press Start 2P",monospace;font-size:10px;padding:10px 12px;cursor:pointer;color:#fff;background:#21ce99;border:3px solid #137a5b;box-shadow:inset 2px 2px 0 #7af0c8,0 4px 0 #137a5b;text-shadow:2px 2px 0 #137a5b;transition:transform .08s}
+#alBtn:active{transform:translateY(3px)}
+.modal{position:fixed;inset:0;z-index:6;display:grid;place-items:center;background:rgba(10,70,90,.55);backdrop-filter:blur(6px);font-family:"Press Start 2P",monospace}
+.modal.hide{display:none}
+.modal .card{width:min(94vw,560px);max-height:90vh;overflow:auto;animation:pop .25s ease-out}
+.modal h2{margin:0 0 14px;font-size:16px;color:#ec4f86;text-shadow:2px 2px 0 #fbd2e4}
+.x-close{position:absolute;top:8px;right:10px;background:none;border:0;font:inherit;font-size:12px;color:#b05a8a;cursor:pointer}
+.code{display:flex;gap:8px;align-items:center;justify-content:center;margin:0 0 16px}
+.code b{font-size:16px;color:#7a3e78;background:#ffe4ee;border:3px dashed #f3a6c8;padding:10px 12px;letter-spacing:2px}
+.mini{font:inherit;font-size:8px;padding:10px 8px;cursor:pointer;color:#fff;background:#ec4f86;border:3px solid #a8325d;box-shadow:0 3px 0 #a8325d}
+.mini:active{transform:translateY(2px)}
+.shares{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.shares button{font:inherit;font-size:10px;padding:14px 8px;cursor:pointer;color:#fff;border:3px solid rgba(0,0,0,.35);box-shadow:0 4px 0 rgba(0,0,0,.3);transition:transform .08s}
+.shares button:hover{transform:translateY(-2px)}
+.shares button:active{transform:translateY(2px)}
+.s-x{background:#14171a}.s-ig{background:#d6336c}.s-dc{background:#5865f2}.s-wa{background:#25d366}
+.note{min-height:12px;margin-top:12px;font-size:8px;color:#137a5b;line-height:1.6}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;text-align:left}
+@media (max-width:520px){.cols{grid-template-columns:1fr}}
+.cols h3{font-size:9px;color:#7a3e78;margin:0 0 8px;border-bottom:3px solid #f3a6c8;padding-bottom:6px}
+.cols ol{list-style:none;margin:0;padding:0}
+.cols li{display:flex;align-items:center;gap:6px;font-size:8px;color:#7a3e78;padding:6px 0;border-bottom:1px dashed #f8cfe0}
+.cols li img{width:18px;height:18px;border:2px solid #fff;box-shadow:0 0 0 1px #f3a6c8;background:#ffe4ee}
+.cols li .n{color:#ec4f86;width:16px}
+.cols li .pt{margin-left:auto;color:#21ce99}
+.cols li .rc{display:block;color:#b05a8a;font-size:7px;margin-top:3px}
+.mine{margin-top:14px;font-size:8px;color:#7a3e78;line-height:1.8}
+</style>
+</head>
+<body>
+<div id="gate" class="hide" data-testid="name-gate">
+  <canvas id="bg"></canvas>
+  <form class="card" id="gateForm">
+    <img class="potion" src="/assets/potion.png" alt="PotionRH potion"/>
+    <h1>POTIONRH</h1>
+    <p class="sub">PINK DREAM 1-1</p>
+    <div class="step on" id="stepNick" data-testid="step-nick">
+      <label for="nick">1/3 YOUR X USERNAME</label>
+      <div class="row">
+        <span class="at">@</span>
+        <input id="nick" data-testid="nick-input" maxlength="12" autocomplete="off" spellcheck="false" placeholder="username"/>
+      </div>
+    </div>
+    <div class="step" id="stepEvm" data-testid="step-evm">
+      <p class="who" id="who" data-testid="evm-step-nick"></p>
+      <label for="evm">2/3 YOUR EVM ADDRESS</label>
+      <div class="row">
+        <input id="evm" data-testid="evm-input" maxlength="42" autocomplete="off" spellcheck="false" placeholder="0x..."/>
+      </div>
+    </div>
+    <div class="step" id="stepRef" data-testid="step-ref">
+      <label for="refin">3/3 REF CODE? (OPTIONAL)</label>
+      <div class="row">
+        <input id="refin" data-testid="ref-input" maxlength="8" autocomplete="off" spellcheck="false" placeholder="PRH12345"/>
+      </div>
+    </div>
+    <button id="go" type="submit" data-testid="nick-submit">NEXT</button>
+    <button id="back" type="button" class="step" data-testid="evm-back">&#9664; CHANGE USERNAME</button>
+    <div id="err" data-testid="nick-error"></div>
+  </form>
+</div>
+<button id="alBtn" type="button" data-testid="allowlist-button">ALLOW LIST</button>
+<div id="alModal" class="modal hide" data-testid="allowlist-modal">
+  <div class="card">
+    <button class="x-close" type="button" data-close data-testid="allowlist-close">X</button>
+    <h2>ALLOW LIST</h2>
+    <div class="cols">
+      <div><h3>LATEST 10</h3><ol id="alLatest" data-testid="allowlist-latest"></ol></div>
+      <div><h3>TOP REF CODES</h3><ol id="alTop" data-testid="allowlist-top"></ol></div>
+    </div>
+    <div class="mine" id="alMine" data-testid="allowlist-mine"></div>
+  </div>
+</div>
+<div id="invModal" class="modal hide" data-testid="invite-modal">
+  <div class="card">
+    <button class="x-close" type="button" data-close data-testid="invite-close">X</button>
+    <h2>INVITE FRIENDS</h2>
+    <p class="sub">+10 POINTS FOR EVERY FRIEND</p>
+    <div class="code"><b id="invCode" data-testid="invite-ref-code">PRH-----</b><button class="mini" type="button" id="copyCode" data-testid="invite-copy-code">COPY</button></div>
+    <div class="shares">
+      <button class="s-x" type="button" data-share="x" data-testid="invite-share-x">X</button>
+      <button class="s-ig" type="button" data-share="ig" data-testid="invite-share-instagram">INSTAGRAM</button>
+      <button class="s-dc" type="button" data-share="dc" data-testid="invite-share-discord">DISCORD</button>
+      <button class="s-wa" type="button" data-share="wa" data-testid="invite-share-whatsapp">WHATSAPP</button>
+    </div>
+    <div class="note" id="invNote" data-testid="invite-note"></div>
+  </div>
+</div>
+<canvas id="c" width="1024" height="960" tabindex="0"></canvas>
+<div id="touch" data-testid="touch-controls">
+  <div class="pad"><button data-k="ArrowLeft" data-testid="touch-left">&#9664;</button><button data-k="ArrowRight" data-testid="touch-right">&#9654;</button></div>
+  <div class="pad"><button data-k="KeyX" data-testid="touch-run">RUN</button><button data-k="Space" data-testid="touch-jump">JUMP</button></div>
+</div>
+<script>
+/* PotionRH - original code, tiles and sounds. */
+const T = 16, ROWS = 15, VIEW_W = 256, VIEW_H = 240, SCALE = 4;
+const AIR=0, GND=1, BRK=2, USED=4, OBS=6, QFOLLOW=11, QRT=12, QLIKE=13, QSHARE=14;
+const QUEST_TILES = { [QFOLLOW]:"follow", [QRT]:"rt", [QLIKE]:"like", [QSHARE]:"share" };
+const QUESTS = [
+  { kind:"follow", tile:QFOLLOW, tx:16, ty:9, label:"FOLLOW X" },
+  { kind:"rt", tile:QRT, tx:21, ty:9, label:"RT" },
+  { kind:"like", tile:QLIKE, tx:23, ty:9, label:"LIKE" },
+  { kind:"share", tile:QSHARE, tx:22, ty:5, label:"SHARE" }
+];
+const LEVEL_W = 33;
+const PORTAL = { x:27, top:8, w:4, h:5 };
+const c = document.getElementById("c");
+const ctx = c.getContext("2d");
+ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+ctx.imageSmoothingEnabled = false;
+
+const PAL = {
+  K:"#3a2340", S:"#ffd9c4", W:"#ffffff", Y:"#ffe27a",
+  N:"#8e4a26", n:"#5c2c12", V:"#86cc52", v:"#4f8f2d", U:"#6a3a1c",
+  B:"#5a6fe8", b:"#3c4ab8", A:"#21ce99", R:"#ec4f86"
+};
+const hsh = (a, b, c) => {
+  let n = Math.imul(a, 374761393) + Math.imul(b, 668265263) + Math.imul(c || 0, 2246822519);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return (n ^ (n >>> 16)) >>> 0;
+};
+
+const FONT = {
+  " ":"000000000000000",
+  "0":"111101101101111","1":"010010010010010","2":"111001111100111","3":"111001111001111",
+  "4":"101101111001001","5":"111100111001111","6":"111100111101111","7":"111001001001001",
+  "8":"111101111101111","9":"111101111001111",
+  "A":"111101111101101","B":"110101110101110","C":"111100100100111","D":"110101101101110",
+  "E":"111100111100111","F":"111100111100100","G":"111100101101111","H":"101101111101101",
+  "I":"111010010010111","J":"001001001101111","K":"101101110101101","L":"100100100100111",
+  "M":"101111101101101","N":"110101101101101","O":"111101101101111","P":"111101111100100",
+  "Q":"111101101111001","R":"111101110101101","S":"111100111001111","T":"111010010010010",
+  "U":"101101101101111","V":"101101101101010","W":"101101101111101","X":"101101010101101",
+  "Y":"101101010010010","Z":"111001010100111",
+  "-":"000000111000000","x":"000101010101000","_":"000000000000111",".":"000000000000010","/":"001001010100100"
+};
+
+const API = new URLSearchParams(location.search).get("api") || "";
+let nick = localStorage.getItem("potionrh_nick") || "";
+let avatar = null;
+const potionImg = new Image();
+potionImg.src = "/assets/potion.png";
+function loadAvatar(url) {
+  avatar = null;
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => { avatar = img; };
+  img.src = url;
+}
+const hudNick = () => nick.toUpperCase().replace(/[^A-Z0-9_]/g, ".");
+const progress = { follow:false, rt:false, like:false, share:false };
+try { Object.assign(progress, JSON.parse(localStorage.getItem("potionrh_progress") || "{}")); } catch (err) { /* ignore */ }
+const links = {
+  follow_url:"https://x.com/potionrh", rt_url:"https://x.com/potionrh", like_url:"https://x.com/potionrh",
+  share_url:"https://x.com/potionrh", share_text:"Grabbing my potion at PotionRH"
+};
+const doneCount = () => Object.values(progress).filter(Boolean).length;
+
+const held = new Set();
+const edge = new Set();
+function pressKey(code) { if (!held.has(code)) edge.add(code); held.add(code); }
+addEventListener("keydown", (e) => {
+  if (e.target && e.target.tagName === "INPUT") return;
+  pressKey(e.code);
+  if (["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault();
+});
+addEventListener("keyup", (e) => held.delete(e.code));
+addEventListener("blur", () => { held.clear(); edge.clear(); });
+for (const btn of document.querySelectorAll("#touch button")) {
+  const code = btn.dataset.k;
+  btn.addEventListener("pointerdown", (e) => { e.preventDefault(); btn.setPointerCapture(e.pointerId); pressKey(code); audio(); });
+  for (const ev of ["pointerup","pointercancel","lostpointercapture"]) btn.addEventListener(ev, () => held.delete(code));
+  btn.addEventListener("contextmenu", (e) => e.preventDefault());
+}
+
+const press = (codes) => codes.some((k) => edge.has(k));
+const hold = (codes) => codes.some((k) => held.has(k));
+const JUMP = ["Space","KeyZ","ArrowUp","KeyW"];
+const RUN = ["KeyX","ShiftLeft","ShiftRight"];
+const LEFT = ["ArrowLeft","KeyA"];
+const RIGHT = ["ArrowRight","KeyD"];
+const DOWN = ["ArrowDown","KeyS"];
+
+let actx = null, muted = false;
+function audio() {
+  if (!actx) actx = new AudioContext();
+  if (actx.state === "suspended") actx.resume();
+  return actx;
+}
+function tone(freq, dur, type, vol, to) {
+  if (muted) return;
+  try {
+    const a = audio();
+    const o = a.createOscillator();
+    const g = a.createGain();
+    o.type = type || "square";
+    o.frequency.setValueAtTime(freq, a.currentTime);
+    if (to) o.frequency.exponentialRampToValueAtTime(Math.max(40, to), a.currentTime + dur);
+    g.gain.setValueAtTime(vol || 0.04, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start();
+    o.stop(a.currentTime + dur + 0.02);
+  } catch (err) { /* audio optional */ }
+}
+const sfx = {
+  jump: () => tone(620, 0.12, "square", 0.05, 220),
+  bump: () => tone(140, 0.06, "square", 0.04),
+  power: () => { [523,659,784,1046].forEach((f,i) => setTimeout(() => tone(f, 0.1, "square", 0.05), i * 70)); },
+  die: () => { [520,440,349,262,196].forEach((f,i) => setTimeout(() => tone(f, 0.16, "square", 0.05), i * 90)); },
+  portal: () => tone(180, 0.18, "square", 0.04, 80)
+};
+
+const SMALL_TOP = [
+  "....KKKKKK......","...KNNNNNNK.....","..KNnNNNNNNK....","..KNNNNnNNNNK...",
+  "..KNNSSSSSNNK...","..KNSSSWKSSK....","...KSSSSSSK.....","....KSSSSK......",
+  "....KVAAVK......","...KVBVVBVK.....","...KSKBYBKS.....","...KK.KBBBKK...."
+];
+const SMALL = {
+  hand: { R:10, L:4, row:10 },
+  stand: [...SMALL_TOP, "......KBBBBK....","......KBBKBBK...","......KUUKUUK...",".......KK.KK...."],
+  walk: [...SMALL_TOP, "......KBBBBK....",".....KBBBKBBBK..","....KUUK..KUUK..","....KKK...KKK..."],
+  jump: [...SMALL_TOP, ".....KKBBBBKK...","....KUUKBBKUUK..","....KKK.KK.KKK..","................"]
+};
+const BIG_TOP = [
+  "....KKKKKK......","...KNNNNNNK.....","..KNnNNNNNNK....","..KNNNNnNNNNK...",
+  "..KNNNNNNNNNK...","..KNNSSSSSNNK...","..KNSSSWKSSNK...","..KNSSSSSSSK....",
+  "...KSSSSSSK.....","....KSSSSK......","....KVAAVK......","...KVBVVBVK.....",
+  "..KVVBVVBVVK....","..KVKBBBBBKVK...","..KVKBYBYBKVK...","..KSKBBBBBKSK...",
+  "..KK.KBBBBKK....",".....KBBBBK.....",".....KBBBBK.....",".....KBBBBK....."
+];
+const BIG = {
+  hand: { R:11, L:3, row:15 },
+  stand: [...BIG_TOP, ".....KBBKBBK....",".....KBBKBBK....",".....KBBKBBK....",".....KUUKUUK....",".....KUUKUUK....","......KK.KK....."],
+  walk: [...BIG_TOP, "....KBBBKBBBK...","....KBBK.KBBK...","...KUUK...KUUK..","...KKK.....KKK.."],
+  jump: [...BIG_TOP, "....KKBBBBKK....","...KUUKBBKUUK...","...KKK.KK.KKK..."]
+};
+const ICONS = {
+  follow: ["1100000011","1110000111","0111001110","0011111100","0001111000","0001111000","0011111100","0111001110","1110000111","1100000011"],
+  rt: ["0010000000","0111000000","1111111100","0010000100","0010000100","0010000100","0010000100","0011111111","0000000111","0000000010"],
+  like: ["0110001100","1111011110","1111111111","1111111111","1111111111","0111111110","0011111100","0001111000","0000110000","0000000000"],
+  share: ["0000000110","0000011110","0001111110","1111111110","1111111110","1111111110","0001111110","0011011110","0011000110","0011000000"]
+};
+
+let grid, COLS;
+let bumps = new Map();
+let fx = [];
+let cam = 0;
+let tick = 0;
+let lives = 3;
+let state = nick ? "load" : "name";
+let cardT = 0, deadT = 0, pause = false;
+let outfit = "blue", hasPotion = false, hasPaper = false, growPending = false;
+const mario = { x:48, y:192, w:12, h:16, vx:0, vy:0, dir:1, onGround:true, power:"small", inv:0, crouch:false };
+
+function at(tx, ty) {
+  if (ty < 0 || ty >= ROWS) return AIR;
+  if (tx < 0 || tx >= COLS) return GND;
+  return grid[ty * COLS + tx];
+}
+function put(tx, ty, v) {
+  if (ty < 0 || ty >= ROWS || tx < 0 || tx >= COLS) return;
+  grid[ty * COLS + tx] = v;
+}
+function solid(tx, ty) { return at(tx, ty) !== AIR; }
+function hits(x, y, w, h) {
+  const x0 = Math.floor(x / T), x1 = Math.floor((x + w - 0.001) / T);
+  const y0 = Math.floor(y / T), y1 = Math.floor((y + h - 0.001) / T);
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (solid(tx, ty)) return true;
+  return false;
+}
+
+function buildLevel() {
+  grid = new Uint8Array(LEVEL_W * ROWS); COLS = LEVEL_W;
+  for (let x = 0; x < LEVEL_W; x++) { put(x, 13, GND); put(x, 14, GND); }
+  for (const [x,y] of [[20,9],[22,9],[24,9]]) put(x, y, BRK);
+  for (const q of QUESTS) put(q.tx, q.ty, progress[q.kind] ? USED : q.tile);
+  for (let y = PORTAL.top; y < PORTAL.top + PORTAL.h; y++) put(PORTAL.x + PORTAL.w - 1, y, OBS);
+  bumps = new Map();
+  fx = [];
+  Object.assign(mario, { x:48, y:192, w:12, h:16, vx:0, vy:0, dir:1, onGround:true, power:"small", inv:0, crouch:false });
+  cam = 0;
+  applyRewards();
+}
+function applyRewards() {
+  if (progress.follow && mario.power === "small") growTo("big");
+  outfit = progress.rt ? "white" : "blue";
+  hasPotion = !!progress.like;
+  hasPaper = !!progress.share;
+}
+
+function popup(x, y, label) { fx.push({ kind:"pop", x, y, label, t:48 }); }
+function spawnDebris(tx, ty) {
+  const specs = [[-1.6,-4.2],[1.6,-4.6],[-1.1,-2.4],[1.1,-2.8]];
+  for (const [vx, vy] of specs) fx.push({ kind:"bit", x:tx*T+4, y:ty*T+4, vx, vy, t:28 });
+}
+function sparkle(tx, ty) {
+  for (let i = 0; i < 10; i++) fx.push({ kind:"spark", x:tx*T+8, y:ty*T+8, vx:Math.cos(i*0.63)*1.6, vy:Math.sin(i*0.63)*1.6-1, t:26 });
+}
+function bump(tx, ty) {
+  const t = at(tx, ty);
+  const key = tx + "," + ty;
+  if (!bumps.has(key)) bumps.set(key, { o:0, v:-3.2 });
+  if (t === BRK) {
+    if (mario.power !== "small") { put(tx, ty, AIR); bumps.delete(key); spawnDebris(tx, ty); }
+    sfx.bump();
+    return;
+  }
+  if (QUEST_TILES[t]) {
+    put(tx, ty, USED);
+    sparkle(tx, ty);
+    completeQuest(QUEST_TILES[t], tx, ty);
+    return;
+  }
+  if (t === USED) sfx.bump();
+}
+function bonk() {
+  const ty = Math.floor((mario.y - 0.01) / T);
+  const mid = Math.floor((mario.x + mario.w / 2) / T);
+  const x0 = Math.floor(mario.x / T);
+  const x1 = Math.floor((mario.x + mario.w - 0.001) / T);
+  for (const tx of [mid, x0, x1]) {
+    const t = at(tx, ty);
+    if (t === BRK || t === USED || QUEST_TILES[t]) { bump(tx, ty); return; }
+  }
+}
+function moveBody(ent) {
+  const grounded = ent.onGround;
+  ent.onGround = false;
+  ent.x += ent.vx;
+  if (hits(ent.x, ent.y, ent.w, ent.h)) {
+    let stepped = false;
+    if (grounded) {
+      for (let s = 1; s <= 16; s++) {
+        if (!hits(ent.x, ent.y - s, ent.w, ent.h)) { ent.y -= s; stepped = true; break; }
+      }
+    }
+    if (!stepped) {
+      if (ent.vx > 0) ent.x = Math.floor((ent.x + ent.w - 0.001) / T) * T - ent.w;
+      else if (ent.vx < 0) ent.x = (Math.floor(ent.x / T) + 1) * T;
+      ent.vx = 0;
+    }
+  }
+  ent.y += ent.vy;
+  if (hits(ent.x, ent.y, ent.w, ent.h)) {
+    if (ent.vy > 0) {
+      ent.y = Math.floor((ent.y + ent.h - 0.001) / T) * T - ent.h;
+      ent.vy = 0;
+      ent.onGround = true;
+    } else if (ent.vy < 0) {
+      ent.y = (Math.floor(ent.y / T) + 1) * T;
+      ent.vy = 0;
+      bonk();
+    } else {
+      ent.y = Math.floor((ent.y + ent.h - 0.001) / T) * T - ent.h;
+      ent.onGround = true;
+    }
+  }
+}
+
+function growTo(power) {
+  const feet = mario.y + mario.h;
+  mario.power = power;
+  mario.crouch = false;
+  mario.h = power === "small" ? 16 : 32;
+  mario.w = 12;
+  mario.y = feet - mario.h;
+}
+function die() {
+  if (state === "dead") return;
+  state = "dead";
+  deadT = 0;
+  mario.vy = -7.2;
+  mario.vx = 0;
+  sfx.die();
+}
+
+/* ---- X quests ---- */
+function saveProgress() {
+  localStorage.setItem("potionrh_progress", JSON.stringify(progress));
+  if (!nick) return;
+  fetch(API + "/api/players/" + encodeURIComponent(nick) + "/progress", {
+    method:"PATCH", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(progress)
+  }).catch(() => {});
+}
+function questUrl(kind) {
+  if (kind === "follow") return links.follow_url;
+  if (kind === "rt") return links.rt_url;
+  if (kind === "like") return links.like_url;
+  return "https://x.com/intent/post?text=" + encodeURIComponent(links.share_text + " " + links.share_url);
+}
+function deepLink(url) {
+  try {
+    const u = new URL(url);
+    if (!/(^|\.)(x|twitter)\.com$/.test(u.hostname)) return null;
+    const p = u.pathname.split("/").filter(Boolean);
+    if (p[0] === "intent") return (p[1] === "post" || p[1] === "tweet") ? "twitter://post?message=" + encodeURIComponent(u.searchParams.get("text") || "") : null;
+    if (p.length >= 3 && p[1] === "status") return "twitter://status?id=" + p[2];
+    if (p.length === 1) return "twitter://user?screen_name=" + p[0];
+  } catch (err) { /* ignore */ }
+  return null;
+}
+function openX(url) {
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const deep = mobile ? deepLink(url) : null;
+  if (!deep) { window.open(url, "_blank", "noopener"); return; }
+  const fallback = setTimeout(() => { if (!document.hidden) window.open(url, "_blank", "noopener"); }, 1500);
+  addEventListener("visibilitychange", () => { if (document.hidden) clearTimeout(fallback); }, { once:true });
+  window.location.href = deep;
+}
+function completeQuest(kind, tx, ty) {
+  progress[kind] = true;
+  saveProgress();
+  sfx.power();
+  const px = tx * T - 8, py = ty * T - 10;
+  if (kind === "follow") { growPending = true; popup(px, py, "FOLLOWED"); }
+  if (kind === "rt") { outfit = "white"; popup(px, py, "REPOSTED"); }
+  if (kind === "like") { hasPotion = true; popup(px, py, "LIKED"); }
+  if (kind === "share") { hasPaper = true; popup(px, py, "SHARED"); }
+  openX(questUrl(kind));
+}
+
+function updateMario() {
+  if (mario.inv > 0) mario.inv--;
+  const run = hold(RUN);
+  const left = hold(LEFT), right = hold(RIGHT);
+  if (press(JUMP) && mario.onGround) {
+    mario.vy = run ? -8.55 : -7.85;
+    mario.onGround = false;
+    sfx.jump();
+  }
+  if (!hold(JUMP) && mario.vy < -3.5) mario.vy = -3.5;
+  if (mario.power !== "small" && hold(DOWN) && mario.onGround) {
+    if (!mario.crouch) { mario.crouch = true; mario.h = 16; mario.y += 16; }
+  } else if (mario.crouch && !hits(mario.x, mario.y - 16, mario.w, 32)) {
+    mario.crouch = false; mario.y -= 16; mario.h = 32;
+  }
+  if (!mario.crouch) {
+    const max = run ? 2.45 : 1.28;
+    const acc = (mario.onGround ? 1 : 0.85) * (run ? 0.12 : 0.075);
+    if (left && !right) { mario.vx -= acc; mario.dir = -1; }
+    else if (right && !left) { mario.vx += acc; mario.dir = 1; }
+    else if (mario.onGround) mario.vx *= 0.78;
+    if (mario.onGround && ((left && mario.vx > 0.4) || (right && mario.vx < -0.4))) mario.vx += left ? -0.22 : 0.22;
+    if (mario.vx > max) mario.vx = max;
+    if (mario.vx < -max) mario.vx = -max;
+  } else mario.vx *= 0.6;
+  if (Math.abs(mario.vx) < 0.06) mario.vx = 0;
+  mario.vy += 0.33;
+  if (mario.vy > 4.8) mario.vy = 4.8;
+  moveBody(mario);
+  if (growPending && mario.onGround && mario.power === "small" && !hits(mario.x, mario.y - 16, mario.w, 32)) {
+    growTo("big"); growPending = false; mario.inv = 20;
+  }
+  const maxCam = COLS * T - VIEW_W;
+  cam = Math.max(0, Math.min(maxCam, Math.round(mario.x + mario.w / 2 - VIEW_W / 2)));
+  if (mario.y > 250) die();
+}
+
+function update() {
+  tick++;
+  if (press(["KeyM"])) muted = !muted;
+  if (press(["Escape"]) && state === "play") pause = !pause;
+  if (pause) { edge.clear(); return; }
+  if (modalOpen()) { edge.clear(); held.clear(); return; }
+  for (const [k, b] of bumps) {
+    b.o += b.v; b.v += 0.45;
+    if (b.o >= 0) bumps.delete(k);
+  }
+  for (const f of fx) {
+    f.t--;
+    if (f.kind === "pop") f.y -= 0.45;
+    if (f.kind === "bit" || f.kind === "spark") { f.x += f.vx; f.y += f.vy; f.vy += f.kind === "bit" ? 0.35 : 0.08; }
+    if (f.kind === "smoke") { f.x += f.vx; f.y += f.vy; f.vx *= 0.97; f.r += 0.09; }
+  }
+  for (let i = fx.length - 1; i >= 0; i--) if (fx[i].t <= 0) fx.splice(i, 1);
+
+  if (state === "name" || state === "load") { edge.clear(); return; }
+  if (state === "card") {
+    cardT++;
+    if (cardT > 150 || press(["Enter","Space"])) { state = "play"; cardT = 0; }
+  } else if (state === "play") {
+    updateMario();
+    updateDino();
+  } else if (state === "dead") {
+    deadT++;
+    mario.vy += 0.28;
+    mario.y += mario.vy;
+    if (deadT > 110) {
+      lives--;
+      if (lives > 0) { buildLevel(); state = "card"; cardT = 0; }
+      else state = "over";
+    }
+  } else if (state === "over") {
+    if (press(["Enter","Space"])) { lives = 3; buildLevel(); state = "card"; cardT = 0; }
+  }
+  edge.clear();
+}
+
+/* ---- drawing ---- */
+function glyphs(str, x, y, color) {
+  ctx.fillStyle = color;
+  let cx = x;
+  for (const ch of str) {
+    const g = FONT[ch] || FONT[" "];
+    for (let i = 0; i < 15; i++) if (g[i] === "1") ctx.fillRect(cx + (i % 3) * 2, y + Math.floor(i / 3) * 2, 2, 2);
+    cx += 8;
+  }
+}
+function text(str, x, y, color, shadow) {
+  glyphs(str, x + 1, y + 1, shadow || "#7a3e78");
+  glyphs(str, x, y, color || "#fff");
+}
+function center(str, y, color, shadow) { text(str, (256 - str.length * 8) / 2, y, color, shadow); }
+function blit(x, feet, rows, pal, flip, flop) {
+  const h = rows.length, w = rows[0].length;
+  const top = feet - h;
+  for (let r = 0; r < h; r++) {
+    const row = rows[flop ? h - 1 - r : r];
+    for (let col = 0; col < w; col++) {
+      const ch = row[flip ? w - 1 - col : col];
+      if (ch === ".") continue;
+      ctx.fillStyle = (pal && pal[ch]) || PAL[ch] || "#fff";
+      ctx.fillRect(x + col, top + r, 1, 1);
+    }
+  }
+}
+function heroPal() {
+  if (outfit === "white") return { ...PAL, B:"#f6f6fa", b:"#cfcfe0", Y:"#ec4f86" };
+  return PAL;
+}
+function hd(fn) { ctx.save(); ctx.imageSmoothingEnabled = true; fn(); ctx.restore(); ctx.imageSmoothingEnabled = false; }
+function drawPotionHD(x, y, w, h) {
+  if (!potionImg.complete || !potionImg.naturalWidth) return;
+  hd(() => ctx.drawImage(potionImg, x, y, w, h));
+}
+function drawPaperHD(x, y) {
+  hd(() => {
+    ctx.translate(x + 3.5, y + 4.5);
+    ctx.rotate(-0.12);
+    ctx.fillStyle = "rgba(58,35,64,.35)"; ctx.fillRect(-3, -3.8, 7.2, 9.2);
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(-3.5, -4.5, 7, 9);
+    ctx.strokeStyle = "#b9c2cc"; ctx.lineWidth = 0.35; ctx.strokeRect(-3.5, -4.5, 7, 9);
+    ctx.fillStyle = "#d8dee6"; ctx.fillRect(-2.5, 1.6, 5, 0.4); ctx.fillRect(-2.5, 2.6, 4, 0.4);
+    ctx.fillStyle = "#1b1b2f";
+    ctx.font = "3px 'Press Start 2P', monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("WL", 0, -0.8);
+  });
+}
+function drawHero(sx, feet) {
+  if (mario.inv > 0 && Math.floor(tick / 4) % 2 === 0) return;
+  const big = mario.h > 16 && !mario.crouch;
+  const book = big ? BIG : SMALL;
+  let pose = "stand";
+  if (state === "dead") pose = "stand";
+  else if (!mario.onGround) pose = "jump";
+  else if (Math.abs(mario.vx) > 0.35 && !mario.crouch) pose = Math.floor(tick / 7) % 2 ? "walk" : "stand";
+  const rows = book[pose] || book.stand;
+  sx = Math.round(sx); feet = Math.round(feet);
+  const flip = mario.dir < 0;
+  const top = feet - rows.length;
+  if (hasPaper) {
+    const hx = flip ? 15 - book.hand.L : book.hand.L;
+    drawPaperHD(flip ? sx + hx : sx + hx - 6, top + book.hand.row - 4);
+  }
+  blit(sx, feet, rows, heroPal(), flip, state === "dead");
+  if (hasPotion) {
+    const hx = flip ? 15 - book.hand.R : book.hand.R;
+    drawPotionHD(flip ? sx + hx - 8 : sx + hx, top + book.hand.row - 5, 9, 10);
+  }
+}
+function roundRect(x, y, w, h, fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); }
+function border(x, y, c) {
+  ctx.fillStyle = c;
+  ctx.fillRect(x, y, 16, 1); ctx.fillRect(x, y + 15, 16, 1); ctx.fillRect(x, y, 1, 16); ctx.fillRect(x + 15, y, 1, 16);
+}
+function drawDirt(x, y, tx, ty, deep) {
+  roundRect(x, y, 16, 16, deep ? "#94572f" : "#a8663a");
+  const cols = ["#8a4e2a", "#b97849", "#7a4424", "#c48a58"];
+  for (let i = 0; i < 9; i++) {
+    const r = hsh(tx, ty, i);
+    ctx.fillStyle = cols[r % 4];
+    ctx.fillRect(x + (r >>> 4) % 15, y + (r >>> 9) % 15, 1 + ((r >>> 14) & 1), 1);
+  }
+  const p = hsh(tx, ty, 99);
+  if (p % 3 === 0) {
+    const px = x + 2 + (p >>> 5) % 11, py = y + 5 + (p >>> 10) % 9;
+    ctx.fillStyle = "#e2c9a6"; ctx.fillRect(px, py, 3, 2);
+    ctx.fillStyle = "#f4e4cc"; ctx.fillRect(px, py, 1, 1);
+    ctx.fillStyle = "#6e3c20"; ctx.fillRect(px, py + 2, 3, 1);
+  }
+  if (p % 5 === 1) { ctx.fillStyle = "#6e3c20"; ctx.fillRect(x + (p >>> 7) % 12, y + 12, 4, 1); }
+}
+function drawGrassTop(x, y, tx) {
+  ctx.fillStyle = "#6fb84e"; ctx.fillRect(x, y, 16, 4);
+  ctx.fillStyle = "#94d866"; ctx.fillRect(x, y, 16, 1);
+  for (let col = 0; col < 16; col++) {
+    const r = hsh(tx, col, 7);
+    const drop = r % 3;
+    ctx.fillStyle = "#4f9a3e"; ctx.fillRect(x + col, y + 4, 1, drop);
+    if (r % 4 === 0) { ctx.fillStyle = "#94d866"; ctx.fillRect(x + col, y - 1 - ((r >>> 3) & 1), 1, 1 + ((r >>> 3) & 1)); }
+  }
+  const f = hsh(tx, 3, 11);
+  if (f % 4 === 0) {
+    const fx0 = x + 3 + (f >>> 4) % 10;
+    ctx.fillStyle = "#4f9a3e"; ctx.fillRect(fx0 + 1, y - 2, 1, 2);
+    ctx.fillStyle = f % 8 === 0 ? "#ff9ec6" : "#fff2fa";
+    ctx.fillRect(fx0, y - 4, 3, 1); ctx.fillRect(fx0 + 1, y - 5, 1, 3);
+    ctx.fillStyle = "#ffe27a"; ctx.fillRect(fx0 + 1, y - 4, 1, 1);
+  }
+}
+function drawIcon(kind, x, y) {
+  const rows = ICONS[kind];
+  for (let r = 0; r < 10; r++) for (let col = 0; col < 10; col++) if (rows[r][col] === "1") {
+    ctx.fillStyle = "#c06a4a"; ctx.fillRect(x + col + 1, y + r + 1, 1, 1);
+  }
+  for (let r = 0; r < 10; r++) for (let col = 0; col < 10; col++) if (rows[r][col] === "1") {
+    ctx.fillStyle = kind === "like" ? "#ff6fa4" : "#fff"; ctx.fillRect(x + col, y + r, 1, 1);
+  }
+}
+function drawObsidian(x, y, tx, ty) {
+  roundRect(x, y, 16, 16, "#1b1125");
+  ctx.fillStyle = "#2d1a3f";
+  for (let i = 0; i < 5; i++) { const r = hsh(tx, ty, i + 40); ctx.fillRect(x + (r >>> 3) % 12, y + (r >>> 8) % 12, 2 + (r & 3), 2 + ((r >>> 12) & 1)); }
+  ctx.fillStyle = "#4a2d66";
+  for (let i = 0; i < 3; i++) { const r = hsh(tx, ty, i + 60); ctx.fillRect(x + (r >>> 3) % 14, y + (r >>> 8) % 14, 2, 1); }
+  ctx.fillStyle = "#0d0812"; ctx.fillRect(x, y + 15, 16, 1); ctx.fillRect(x + 15, y, 1, 16);
+  ctx.fillStyle = "#3b2452"; ctx.fillRect(x, y, 16, 1); ctx.fillRect(x, y, 1, 16);
+}
+function drawTile(t, x, y, tx, ty) {
+  if (t === GND) {
+    const top = at(tx, ty - 1) !== GND;
+    drawDirt(x, y, tx, ty, !top);
+    if (top) drawGrassTop(x, y, tx);
+    return;
+  }
+  if (t === OBS) { drawObsidian(x, y, tx, ty); return; }
+  if (t === BRK) {
+    roundRect(x, y, 16, 16, "#f08cae");
+    ctx.fillStyle = "#c2577f";
+    ctx.fillRect(x, y + 7, 16, 1); ctx.fillRect(x, y + 15, 16, 1);
+    ctx.fillRect(x + 7, y, 1, 7); ctx.fillRect(x + 15, y, 1, 7); ctx.fillRect(x + 3, y + 8, 1, 7); ctx.fillRect(x + 11, y + 8, 1, 7);
+    ctx.fillStyle = "#ffc8da";
+    ctx.fillRect(x, y, 7, 1); ctx.fillRect(x + 8, y, 7, 1); ctx.fillRect(x + 4, y + 8, 7, 1); ctx.fillRect(x + 12, y + 8, 3, 1);
+    ctx.fillStyle = "#ffe4ee"; ctx.fillRect(x + 1, y + 2, 2, 1); ctx.fillRect(x + 6, y + 10, 2, 1);
+    return;
+  }
+  if (QUEST_TILES[t]) {
+    const flash = Math.floor(tick / 8) % 4 === 3;
+    roundRect(x, y, 16, 16, flash ? "#ffe0a8" : "#ffbe78");
+    border(x, y, "#c06a4a");
+    ctx.fillStyle = "#ffe4b8"; ctx.fillRect(x + 1, y + 1, 14, 1); ctx.fillRect(x + 1, y + 1, 1, 14);
+    ctx.fillStyle = "#e89060"; ctx.fillRect(x + 1, y + 14, 14, 1); ctx.fillRect(x + 14, y + 1, 1, 14);
+    drawIcon(QUEST_TILES[t], x + 3, y + 3);
+    return;
+  }
+  if (t === USED) {
+    roundRect(x, y, 16, 16, "#d8a494");
+    border(x, y, "#9a6060");
+    ctx.fillStyle = "#ecc4b6"; ctx.fillRect(x + 2, y + 2, 12, 1);
+    ctx.fillStyle = "#9a6060";
+    ctx.fillRect(x + 2, y + 2, 1, 1); ctx.fillRect(x + 13, y + 2, 1, 1); ctx.fillRect(x + 2, y + 13, 1, 1); ctx.fillRect(x + 13, y + 13, 1, 1);
+    ctx.fillStyle = "#21ce99"; ctx.fillRect(x + 5, y + 8, 2, 2); ctx.fillRect(x + 7, y + 10, 2, 2); ctx.fillRect(x + 9, y + 8, 2, 2); ctx.fillRect(x + 11, y + 6, 2, 2);
+  }
+}
+function drawPortal() {
+  for (let y = PORTAL.top; y < PORTAL.top + PORTAL.h; y++) drawObsidian(PORTAL.x * T - cam, y * T, PORTAL.x, y);
+  for (let x = PORTAL.x; x < PORTAL.x + PORTAL.w; x++) drawObsidian(x * T - cam, PORTAL.top * T, x, PORTAL.top);
+  const x = (PORTAL.x + 1) * T - cam, y = (PORTAL.top + 1) * T;
+  const w = (PORTAL.w - 2) * T, h = (PORTAL.h - 1) * T;
+  ctx.fillStyle = "#4a1788"; ctx.fillRect(x, y, w, h);
+  for (let i = 0; i < h; i++) {
+    const wave = Math.sin((i + tick * 1.2) / 6) * 3 + Math.sin((i - tick * 0.7) / 11) * 2;
+    ctx.fillStyle = i % 3 === 0 ? "#7a2fd0" : "#5e1fa8";
+    ctx.fillRect(x, y + i, w, 1);
+    ctx.fillStyle = "#a865f0";
+    ctx.fillRect(x + Math.round(w / 2 + wave) - 3, y + i, 6, 1);
+    ctx.fillStyle = "rgba(212,140,242,.7)";
+    ctx.fillRect(x + Math.round(w / 2 - wave * 1.4) - 1, y + i, 2, 1);
+  }
+  for (let i = 0; i < 12; i++) {
+    const r = hsh(i, 77, 3);
+    const py = (h - ((tick * (0.4 + (r % 3) * 0.2) + (r >>> 8) % h) % h));
+    ctx.fillStyle = (r & 1) ? "#f3d2ff" : "#d48cf2";
+    ctx.fillRect(x + 2 + (r >>> 4) % (w - 4), y + py, 1, 1);
+  }
+  ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(x, y, w, 2);
+  const label = "COMING SOON";
+  const bob = Math.round(Math.sin(tick / 18) * 2);
+  text(label, x + w / 2 - label.length * 4, PORTAL.top * T - 16 + bob, "#d48cf2", "#3a2340");
+}
+function cloud(x, y, s) {
+  x = Math.round(x); y = Math.round(y);
+  ctx.fillStyle = "#f6c6de";
+  ctx.fillRect(x + 2, y + 12, 30 * s, 5);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(x, y + 6, 32 * s, 10);
+  ctx.fillRect(x + 6, y, 16 * s, 16);
+  ctx.fillRect(x + 16, y + 2, 14 * s, 12);
+  ctx.fillStyle = "#ffe0ee";
+  ctx.fillRect(x + 1, y + 14, 31 * s, 2);
+  ctx.fillStyle = "#ffb3d1";
+  ctx.fillRect(x + 8, y + 8, 2, 1); ctx.fillRect(x + 18, y + 8, 2, 1);
+}
+function drawSky() {
+  const bands = ["#a9dbff", "#b3e0ff", "#bde5ff", "#c7eaff", "#d2eefe", "#ddf2fd", "#e8f4fb", "#f4eaf6"];
+  for (let i = 0; i < bands.length; i++) { ctx.fillStyle = bands[i]; ctx.fillRect(0, i * 26, 256, 26); }
+  for (let i = 0; i < 18; i++) {
+    const r = hsh(i, 5, 1);
+    const sx = ((r % 600) - cam * 0.12) % 600;
+    const x = Math.round(sx < 0 ? sx + 600 : sx);
+    if (x > 256) continue;
+    const y = 30 + (r >>> 10) % 90;
+    const on = (tick + i * 13) % 90 < 45;
+    ctx.fillStyle = on ? "#ffffff" : "#ffd6ea";
+    ctx.fillRect(x, y, 1, 1);
+    if (on) { ctx.fillRect(x - 1, y, 3, 1); ctx.fillRect(x, y - 1, 1, 3); }
+  }
+}
+function drawScenery() {
+  for (let i = 0; i < 14; i++) {
+    const x = i * 120 - cam * 0.3;
+    if (x < -120 || x > 300) continue;
+    const h = 34 + (hsh(i, 1, 4) % 26);
+    ctx.fillStyle = "#e2cdf4";
+    ctx.beginPath(); ctx.moveTo(x - 20, 208); ctx.lineTo(x + 50, 208 - h - 30); ctx.lineTo(x + 120, 208); ctx.fill();
+    ctx.fillStyle = "#f4e8fb";
+    ctx.beginPath(); ctx.moveTo(x + 50, 208 - h - 30); ctx.lineTo(x + 40, 208 - h - 18); ctx.lineTo(x + 50, 208 - h - 22); ctx.lineTo(x + 60, 208 - h - 18); ctx.fill();
+  }
+  for (const hx of [0, 48]) {
+    const x = hx * T - cam;
+    ctx.fillStyle = "#eba6cf";
+    ctx.beginPath();
+    ctx.moveTo(x - 8, 208); ctx.quadraticCurveTo(x + 24, 140, x + 56, 208); ctx.fill();
+    ctx.fillStyle = "#f8c8e2";
+    ctx.beginPath(); ctx.moveTo(x + 6, 196); ctx.quadraticCurveTo(x + 18, 168, x + 26, 172); ctx.lineTo(x + 14, 200); ctx.fill();
+    ctx.fillStyle = "#c97fb2";
+    ctx.fillRect(x + 30, 186, 3, 4); ctx.fillRect(x + 36, 194, 3, 4); ctx.fillRect(x + 22, 198, 2, 3);
+    const bx = x + 64;
+    ctx.fillStyle = "#d78fbf";
+    ctx.fillRect(bx - 1, 197, 34, 11);
+    ctx.fillStyle = "#f3b4d6";
+    ctx.fillRect(bx, 196, 32, 12);
+    ctx.fillRect(bx + 6, 188, 20, 12);
+    ctx.fillRect(bx + 12, 184, 8, 8);
+    ctx.fillStyle = "#ffd8ec";
+    ctx.fillRect(bx + 8, 190, 6, 2); ctx.fillRect(bx + 14, 186, 3, 2); ctx.fillRect(bx + 2, 198, 5, 2);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(bx + 22, 193, 1, 1); ctx.fillRect(bx + 10, 200, 1, 1);
+  }
+  const clouds = [[9,3],[20,2],[37,3]];
+  for (const [cx, cy] of clouds) cloud(cx * T - cam * 0.55, cy * T + Math.sin((tick + cx * 20) / 60), 1);
+}
+function heart(x, y, c) {
+  ctx.fillStyle = c;
+  ctx.fillRect(x + 1, y, 2, 1); ctx.fillRect(x + 4, y, 2, 1);
+  ctx.fillRect(x, y + 1, 7, 2); ctx.fillRect(x + 1, y + 3, 5, 1); ctx.fillRect(x + 2, y + 4, 3, 1); ctx.fillRect(x + 3, y + 5, 1, 1);
+}
+function drawAvatar(x, y, s) {
+  ctx.fillStyle = "#fff"; ctx.fillRect(x - 1, y - 1, s + 2, s + 2);
+  if (avatar) { try { hd(() => ctx.drawImage(avatar, x, y, s, s)); return; } catch (err) { /* ignore */ } }
+  ctx.fillStyle = "#f3a6c8"; ctx.fillRect(x, y, s, s);
+  heart(x + Math.floor(s / 2) - 3, y + Math.floor(s / 2) - 3, "#fff");
+}
+function drawHUD() {
+  ctx.fillStyle = "rgba(255,240,248,.55)";
+  ctx.fillRect(8, 4, 240, 26);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(8, 4, 240, 1);
+  text("POTIONRH", 16, 8);
+  drawAvatar(84, 8, 10);
+  text(hudNick(), 98, 8, "#ffe27a");
+  text("QUESTS " + doneCount() + "/4", 16, 20, doneCount() === 4 ? "#21ce99" : "#ffe27a");
+  text("WORLD", 200, 8);
+  text("1-1", 208, 20, "#ffe27a");
+}
+function drawQuestLabels() {
+  for (const q of QUESTS) {
+    const bx = q.tx * T - cam, by = q.ty * T;
+    if (bx < -80 || bx > 300) continue;
+    const bob = Math.round(Math.sin((tick + q.tx * 7) / 14) * 1.5);
+    const done = progress[q.kind];
+    const label = done ? "OK" : q.label;
+    text(label, Math.round(bx + 8 - label.length * 4), by - 12 + bob, done ? "#21ce99" : "#fff", done ? "#1b5e4a" : "#7a3e78");
+  }
+}
+function drawWorld() {
+  drawSky();
+  drawScenery();
+  drawPortal();
+  const x0 = Math.max(0, Math.floor(cam / T) - 1);
+  const x1 = Math.min(COLS - 1, Math.floor((cam + VIEW_W) / T) + 1);
+  for (let ty = 0; ty < ROWS; ty++) for (let tx = x0; tx <= x1; tx++) {
+    const t = at(tx, ty);
+    if (!t) continue;
+    const b = bumps.get(tx + "," + ty);
+    drawTile(t, tx * T - cam, ty * T + (b ? Math.round(b.o) : 0), tx, ty);
+  }
+  drawQuestLabels();
+  for (const f of fx) {
+    if (f.kind === "pop") text(f.label, Math.round(f.x - cam), Math.round(f.y), "#fff");
+    if (f.kind === "bit") { ctx.fillStyle = "#c2577f"; ctx.fillRect(Math.round(f.x - cam), Math.round(f.y) + 1, 4, 4); ctx.fillStyle = "#ffc8da"; ctx.fillRect(Math.round(f.x - cam), Math.round(f.y), 4, 3); }
+    if (f.kind === "spark") { ctx.fillStyle = f.t % 4 < 2 ? "#ffe27a" : "#21ce99"; ctx.fillRect(Math.round(f.x - cam), Math.round(f.y), 2, 2); }
+    if (f.kind === "smoke") { ctx.fillStyle = "rgba(235,230,245," + (f.t / 44 * 0.85).toFixed(2) + ")"; ctx.beginPath(); ctx.arc(f.x - cam, f.y, f.r, 0, 6.283); ctx.fill(); }
+  }
+  drawHero(mario.x - cam, mario.y + mario.h);
+  drawDino();
+  drawHUD();
+}
+const DINO_PAL = {
+  K:"#2a1638", P:"#9a5be0", p:"#6a35b0", L:"#c7a3f5", Y:"#ffd34d", y:"#e3a62a",
+  W:"#ffffff", H:"#f6efe2", R:"#ee3a52", r:"#a8213a", O:"#ff9a3c", o:"#d4651c", n:"#3a1d55"
+};
+const DINO_BODY = [
+  "...............KK.......",
+  "..............KHHK......",
+  "...........KKKKHHKKK....",
+  "..........KPPPPKKPPPKK..",
+  ".........KPPLLPPPPPPPPK.",
+  ".........KPLLPWWWPWWWPK.",
+  ".........KPPPPWWWPWWWPPK",
+  ".........KPPPPWWWPWWWPPK",
+  "..........KPPPPPPPPPPPPK",
+  "..........KPPPPPPPPPPPnK",
+  "...........KPPYYYYKWKKK.",
+  "...KK.....KPPYYYYYKK....",
+  "..KPPK...KPPPYYyYYK.....",
+  ".KPPPPKKKPPPPYYyYK......",
+  ".KPpPPPPPPPPPYYYYK......",
+  "..KKPPPPPPPPPYYYK.......",
+  "....KpPPPPPPPYYK........",
+  ".....KpppPPPPPK.........",
+  ".....KRRRRK.KRRRRK......",
+  "....KRRRRRRKKRRRRRRK....",
+  "....KrrrrrrK.KrrrrrrK...",
+  ".....KKKKKK...KKKKKK...."
+];
+const DINO_WINGS = [
+  { x:4, y:4, rows:["K.......","KOK.....","KOOK....","KOoOK...",".KOoOK..","..KOoOKK","...KOOOK","....KKK."] },
+  { x:2, y:10, rows:["KKKK.....","KOOOKKK..","KOoOoOOKK",".KOoOoOOK","..KKKKKK."] },
+  { x:4, y:11, rows:["....KKKK","...KOOOK","..KOoOK.",".KOoOK..","KOoOK...","KOK.....","K......."] }
+];
+const DINO_W = 24, DINO_H = 22;
+const dino = { on:false, x:0, y:-60, face:1, arrived:false, look:0, lookT:0, turnT:0, smokeT:120 };
+function updateDino() {
+  if (!dino.on) {
+    if (doneCount() < 4) return;
+    Object.assign(dino, { on:true, x:mario.x - 24, y:-60, arrived:false });
+    sfx.power();
+  }
+  const tx = mario.x + mario.w / 2 - mario.dir * 24 - DINO_W / 2;
+  const ty = Math.max(44, mario.y + mario.h - 44);
+  dino.x += (tx - dino.x) * 0.06;
+  dino.y += (ty - dino.y) * (dino.arrived ? 0.08 : 0.035);
+  if (!dino.arrived && Math.abs(ty - dino.y) < 3) dino.arrived = true;
+  const dx = mario.x - dino.x;
+  if (Math.abs(dx) > 4) dino.face = dx > 0 ? 1 : -1;
+  if (--dino.lookT <= 0) {
+    const r = hsh(tick, 7, 3) % 10;
+    dino.look = r < 4 ? 0 : r < 7 ? -1 : 1;
+    dino.lookT = 50 + (r * 13);
+    if (r === 9) dino.turnT = 45;
+  }
+  if (dino.turnT > 0) dino.turnT--;
+  if (--dino.smokeT <= 0 && dino.arrived) {
+    dino.smokeT = 160 + (hsh(tick, 2, 5) % 140);
+    dino.puff = 4;
+  }
+  if (dino.puff > 0 && tick % 6 === 0) {
+    dino.puff--;
+    const b = dinoBox(), f = dinoFacing();
+    fx.push({ kind:"smoke", x:b.x + cam + (f > 0 ? 23 : 0), y:b.y + 9, vx:f * (0.35 + Math.random() * 0.2), vy:-0.25 - Math.random() * 0.15, t:44, r:1.2 });
+  }
+  if (press(["KeyI"])) openInvite();
+}
+const dinoFacing = () => (dino.turnT > 0 ? -dino.face : dino.face);
+function dinoBox() {
+  return { x:Math.round(dino.x - cam), y:Math.round(dino.y + Math.sin(tick / 12) * 3), w:DINO_W, h:DINO_H };
+}
+function drawDino() {
+  if (!dino.on) return;
+  const b = dinoBox();
+  const f = dinoFacing(), flip = f < 0;
+  const wing = DINO_WINGS[[0, 1, 2, 1][Math.floor(tick / 6) % 4]];
+  blit(b.x, b.y + DINO_H, DINO_BODY, DINO_PAL, flip);
+  const ww = wing.rows[0].length;
+  blit(flip ? b.x + DINO_W - wing.x - ww : b.x + wing.x, b.y + wing.y + wing.rows.length, wing.rows, DINO_PAL, flip);
+  const blink = tick % 220 < 6;
+  ctx.fillStyle = blink ? DINO_PAL.P : DINO_PAL.n;
+  for (const ex of [14, 18]) {
+    const px = ex + 1 + dino.look * (flip ? -1 : 1);
+    const sx = flip ? DINO_W - 1 - px : px;
+    if (blink) ctx.fillRect(b.x + (flip ? DINO_W - 1 - ex - 2 : ex), b.y + 5, 3, 3);
+    else ctx.fillRect(b.x + sx, b.y + 6, 1, 2);
+  }
+  if (blink) { ctx.fillStyle = DINO_PAL.K; for (const ex of [14, 18]) ctx.fillRect(b.x + (flip ? DINO_W - 1 - ex - 2 : ex), b.y + 6, 3, 1); }
+  if (!dino.arrived) return;
+  const lx = b.x + DINO_W / 2 - 26, ly = b.y - 14;
+  ctx.fillStyle = "#a8325d"; ctx.fillRect(lx, ly + 1, 52, 11);
+  ctx.fillStyle = Math.floor(tick / 30) % 2 ? "#ec4f86" : "#ff6f9f"; ctx.fillRect(lx, ly, 52, 10);
+  text("INVITE", lx + 2, ly + 2, "#fff", "#a8325d");
+  ctx.fillStyle = "#ec4f86"; ctx.fillRect(b.x + DINO_W / 2 - 1, ly + 10, 3, 2);
+}
+function hitDino(e) {
+  if (!dino.on || !dino.arrived || state !== "play") return false;
+  const r = c.getBoundingClientRect();
+  const gx = (e.clientX - r.left) / r.width * VIEW_W, gy = (e.clientY - r.top) / r.height * VIEW_H;
+  const b = dinoBox();
+  return gx >= b.x - 14 && gx <= b.x + DINO_W + 14 && gy >= b.y - 18 && gy <= b.y + DINO_H + 4;
+}
+function dreamBg(dim) {
+  const cx = 128, cy = 120, R = 200;
+  const grad = ctx.createRadialGradient(cx, cy, 6, cx, cy, 190);
+  grad.addColorStop(0, "#6fe2f3"); grad.addColorStop(0.55, "#3fcde6"); grad.addColorStop(1, "#22b4d4");
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, 256, 240);
+  ctx.fillStyle = "rgba(20,140,180,.18)";
+  for (let y = 0; y < 240; y += 4) for (let x = (y / 4) % 2 ? 2 : 0; x < 256; x += 4) ctx.fillRect(x, y, 1, 1);
+  const N = 32;
+  for (let i = 0; i < N; i++) {
+    const a = i * (Math.PI * 2 / N) + tick * 0.003 + Math.sin(tick * 0.012 + i) * 0.03;
+    const w = 0.016 + 0.012 * (0.5 + 0.5 * Math.sin(tick * 0.05 + i * 1.7));
+    const r0 = 34 + 8 * Math.sin(tick * 0.04 + i * 0.9);
+    ctx.globalAlpha = 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(tick * 0.07 + i * 2.3));
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+    ctx.lineTo(cx + Math.cos(a - w) * R, cy + Math.sin(a - w) * R);
+    ctx.lineTo(cx + Math.cos(a + w) * R, cy + Math.sin(a + w) * R);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  if (dim) { ctx.fillStyle = "rgba(20,90,110,.25)"; ctx.fillRect(0, 0, 256, 240); }
+}
+function panel(y, h) {
+  ctx.fillStyle = "rgba(122,62,120,.25)"; ctx.fillRect(34, y + 3, 192, h);
+  ctx.fillStyle = "#fff6fa"; ctx.fillRect(30, y, 196, h);
+  ctx.fillStyle = "#f3a6c8"; ctx.fillRect(30, y, 196, 2); ctx.fillRect(30, y + h - 2, 196, 2); ctx.fillRect(30, y, 2, h); ctx.fillRect(224, y, 2, h);
+}
+function drawOverlay() {
+  const ink = "#7a3e78", soft = "#fbd2e4";
+  if (state === "name") { dreamBg(); return; }
+  if (state === "load") {
+    dreamBg();
+    panel(100, 40);
+    center("LOADING" + ".".repeat(Math.floor(tick / 20) % 4), 114, "#ec4f86", soft);
+    return;
+  }
+  if (state === "card") {
+    dreamBg();
+    panel(66, 142);
+    center("POTIONRH", 78, "#ec4f86", soft);
+    center("WELCOME " + hudNick(), 96, ink, soft);
+    drawAvatar(80, 114, 20);
+    const saveG = mario.onGround, saveVx = mario.vx, saveInv = mario.inv;
+    mario.onGround = true; mario.vx = 0; mario.inv = 0;
+    drawHero(108, 134);
+    mario.onGround = saveG; mario.vx = saveVx; mario.inv = saveInv;
+    heart(134, 120, "#ec4f86");
+    text("x " + lives, 146, 120, ink, soft);
+    center("QUESTS " + doneCount() + "/4", 148, "#21ce99", soft);
+    center("ARROWS  Z JUMP  X RUN", 164, "#b05a8a", soft);
+    center("HIT THE X BLOCKS", 178, "#b05a8a", soft);
+    if (Math.floor(tick / 20) % 2) center("PRESS ENTER", 194, "#ec4f86", soft);
+  } else if (state === "over") {
+    dreamBg(true);
+    panel(84, 76);
+    center("GAME OVER", 100, "#ec4f86", soft);
+    center("QUESTS " + doneCount() + "/4", 120, ink, soft);
+    if (Math.floor(tick / 20) % 2) center("ENTER TO RETRY", 140, "#b05a8a", soft);
+  } else if (pause) {
+    ctx.fillStyle = "rgba(255,214,232,.6)"; ctx.fillRect(0, 0, 256, 240);
+    panel(96, 40);
+    center("PAUSED", 110, "#ec4f86", soft);
+  }
+}
+function frame() {
+  update();
+  if (state === "card" || state === "over" || state === "name" || state === "load") drawOverlay();
+  else { drawWorld(); drawOverlay(); }
+  requestAnimationFrame(frame);
+}
+
+/* ---- name gate ---- */
+const gate = document.getElementById("gate");
+const bg = document.getElementById("bg");
+const bgc = bg.getContext("2d");
+const nickInput = document.getElementById("nick");
+const goBtn = document.getElementById("go");
+const errBox = document.getElementById("err");
+function drawGateBg(t) {
+  if (gate.classList.contains("hide")) return;
+  if (bg.width !== innerWidth || bg.height !== innerHeight) { bg.width = innerWidth; bg.height = innerHeight; }
+  const W = bg.width, H = bg.height, cx = W / 2, cy = H / 2, R = Math.hypot(W, H);
+  const grad = bgc.createRadialGradient(cx, cy, 20, cx, cy, Math.max(W, H) * 0.75);
+  grad.addColorStop(0, "#6fe2f3"); grad.addColorStop(0.55, "#3fcde6"); grad.addColorStop(1, "#22b4d4");
+  bgc.fillStyle = grad; bgc.fillRect(0, 0, W, H);
+  bgc.fillStyle = "rgba(20,140,180,.18)";
+  for (let y = 0; y < H; y += 8) for (let x = (y / 8) % 2 ? 4 : 0; x < W; x += 8) { bgc.beginPath(); bgc.arc(x, y, 1.3, 0, 6.283); bgc.fill(); }
+  const N = 40;
+  for (let i = 0; i < N; i++) {
+    const a = i * (Math.PI * 2 / N) + t * 0.00018 + Math.sin(t * 0.0007 + i) * 0.03;
+    const w = 0.014 + 0.012 * (0.5 + 0.5 * Math.sin(t * 0.003 + i * 1.7));
+    const r0 = 120 + 36 * Math.sin(t * 0.0022 + i * 0.9) + Math.min(W, H) * 0.08;
+    bgc.globalAlpha = 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(t * 0.0045 + i * 2.3));
+    bgc.fillStyle = "#ffffff";
+    bgc.beginPath();
+    bgc.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+    bgc.lineTo(cx + Math.cos(a - w) * R, cy + Math.sin(a - w) * R);
+    bgc.lineTo(cx + Math.cos(a + w) * R, cy + Math.sin(a + w) * R);
+    bgc.closePath(); bgc.fill();
+  }
+  bgc.globalAlpha = 1;
+  for (let i = 0; i < 26; i++) {
+    const r = hsh(i, 3, 9);
+    const px = (r % W), py = (((r >>> 8) % H) - t * (0.02 + (r % 5) * 0.01)) % H;
+    const y = py < 0 ? py + H : py;
+    bgc.fillStyle = "rgba(255,255,255," + (0.3 + (r % 4) * 0.15) + ")";
+    const s = 3 + (r % 3) * 2;
+    bgc.fillRect(px, y, s, s);
+  }
+  requestAnimationFrame(drawGateBg);
+}
+const evmInput = document.getElementById("evm"), refInput = document.getElementById("refin");
+const steps = ["stepNick", "stepEvm", "stepRef"].map((id) => document.getElementById(id));
+const backBtn = document.getElementById("back");
+const urlRef = (new URLSearchParams(location.search).get("ref") || "").toUpperCase();
+if (/^PRH\d{5}$/.test(urlRef)) refInput.value = urlRef;
+let pendingNick = "", step = 0, me = null;
+function setStep(i) {
+  step = i;
+  steps.forEach((el, k) => el.classList.toggle("on", k === i));
+  backBtn.classList.toggle("on", i > 0);
+  backBtn.textContent = i === 2 ? "\u25C0 CHANGE ADDRESS" : "\u25C0 CHANGE USERNAME";
+  goBtn.textContent = i === 2 ? "START" : "NEXT"; errBox.textContent = "";
+  [nickInput, evmInput, refInput][i].focus();
+}
+function showGate(evmFor) {
+  gate.classList.remove("hide"); requestAnimationFrame(drawGateBg);
+  if (evmFor) { pendingNick = evmFor; nickInput.value = evmFor; document.getElementById("who").textContent = "@" + evmFor.toUpperCase(); }
+  setStep(evmFor ? 1 : 0);
+}
+backBtn.addEventListener("click", () => setStep(step - 1));
+function openGame(player) {
+  nick = player.nick; me = player;
+  localStorage.setItem("potionrh_nick", nick);
+  localStorage.setItem("potionrh_avatar", player.avatar_url);
+  loadAvatar(player.avatar_url);
+  if (player.progress) for (const k of Object.keys(progress)) progress[k] = progress[k] || !!player.progress[k];
+  localStorage.setItem("potionrh_progress", JSON.stringify(progress));
+  gate.classList.add("hide");
+  buildLevel();
+  state = "card"; cardT = 0;
+  c.focus();
+}
+function checkNick(raw) {
+  const clean = raw.trim().replace(/^@+/, "");
+  if (!/^[A-Za-z0-9_]{2,12}$/.test(clean)) { errBox.textContent = "2-12 CHARS: LETTERS, DIGITS, _"; return; }
+  showGate(clean);
+}
+function checkEvm(raw) {
+  if (!/^0x[a-fA-F0-9]{40}$/.test(raw.trim())) { errBox.textContent = "ENTER A VALID 0x ADDRESS (42 CHARS)"; return; }
+  setStep(2);
+}
+async function registerPlayer() {
+  const ref = refInput.value.trim().toUpperCase();
+  if (ref && !/^PRH\d{5}$/.test(ref)) { errBox.textContent = "CODE LOOKS LIKE PRH12345"; return; }
+  errBox.textContent = "";
+  goBtn.disabled = true; goBtn.textContent = "SAVING...";
+  try {
+    const body = { nick: pendingNick, evm_address: evmInput.value.trim() };
+    if (ref) body.referral_code = ref;
+    const res = await fetch(API + "/api/players", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (res.status === 422) { const d = await res.json(); errBox.textContent = String(d.detail || "INVALID").toUpperCase(); return; }
+    if (!res.ok) throw new Error("bad status " + res.status);
+    openGame(await res.json());
+  } catch (err) {
+    errBox.textContent = "COULD NOT SAVE, TRY AGAIN";
+  } finally {
+    goBtn.disabled = false; goBtn.textContent = "START";
+  }
+}
+document.getElementById("gateForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (step === 0) checkNick(nickInput.value);
+  else if (step === 1) checkEvm(evmInput.value);
+  else registerPlayer();
+});
+
+/* ---- invite + allow list ---- */
+const invModal = document.getElementById("invModal"), alModal = document.getElementById("alModal");
+const invNote = document.getElementById("invNote");
+const modalOpen = () => !invModal.classList.contains("hide") || !alModal.classList.contains("hide");
+const inviteLink = () => location.origin + "/?ref=" + me.ref_code;
+const inviteMsg = () => "Join me on PotionRH and grab your potion! Use my ref code " + me.ref_code + " " + inviteLink();
+function closeModals() { invModal.classList.add("hide"); alModal.classList.add("hide"); c.focus(); }
+for (const m of [invModal, alModal]) m.addEventListener("click", (e) => { if (e.target === m || e.target.hasAttribute("data-close")) closeModals(); });
+addEventListener("keydown", (e) => { if (e.code === "Escape" && modalOpen()) { e.stopImmediatePropagation(); closeModals(); } }, true);
+function openInvite() {
+  if (!me || !me.ref_code) return;
+  held.clear();
+  document.getElementById("invCode").textContent = me.ref_code;
+  invNote.textContent = "";
+  invModal.classList.remove("hide");
+}
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch (err) {
+    const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand("copy"); ta.remove(); return ok;
+  }
+}
+document.getElementById("copyCode").addEventListener("click", async () => {
+  invNote.textContent = (await copyText(me.ref_code)) ? "CODE COPIED" : "COPY FAILED";
+});
+for (const b of document.querySelectorAll("[data-share]")) b.addEventListener("click", async () => {
+  const kind = b.dataset.share, msg = inviteMsg();
+  if (kind === "x") { openX("https://x.com/intent/post?text=" + encodeURIComponent(msg)); return; }
+  if (kind === "wa") { window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank", "noopener"); return; }
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (mobile && navigator.share) { try { await navigator.share({ text: msg }); return; } catch (err) { /* fall back to copy */ } }
+  await copyText(msg);
+  invNote.textContent = "INVITE COPIED - PASTE IT IN " + (kind === "ig" ? "INSTAGRAM" : "DISCORD");
+  window.open(kind === "ig" ? "https://www.instagram.com/direct/inbox/" : "https://discord.com/channels/@me", "_blank", "noopener");
+});
+const esc = (t) => String(t).replace(/[&<>"']/g, (ch) => "&#" + ch.charCodeAt(0) + ";");
+function row(i, p, extra) {
+  return '<li><span class="n">' + (i + 1) + '</span><img src="' + esc(p.avatar_url) + '" alt="" loading="lazy"/><span>@' + esc(p.nick) + (extra || "") + "</span>";
+}
+async function openAllowList() {
+  held.clear();
+  alModal.classList.remove("hide");
+  const latest = document.getElementById("alLatest"), top = document.getElementById("alTop");
+  latest.innerHTML = top.innerHTML = "<li>LOADING...</li>";
+  document.getElementById("alMine").innerHTML = me && me.ref_code ? "YOUR CODE: <b>" + esc(me.ref_code) + "</b> &middot; " + me.points + " PTS" : "";
+  try {
+    const res = await fetch(API + "/api/allowlist");
+    const d = await res.json();
+    latest.innerHTML = d.latest.map((p, i) => row(i, p) + "</li>").join("") || "<li>NO PLAYERS YET</li>";
+    top.innerHTML = d.leaders.map((p, i) => row(i, p, '<span class="rc">' + esc(p.ref_code) + "</span>") + '<span class="pt">' + p.points + " PTS</span></li>").join("") || "<li>NO INVITES YET</li>";
+  } catch (err) { latest.innerHTML = top.innerHTML = "<li>COULD NOT LOAD</li>"; }
+}
+document.getElementById("alBtn").addEventListener("click", openAllowList);
+
+async function boot() {
+  try {
+    const res = await fetch(API + "/api/settings");
+    if (res.ok) Object.assign(links, await res.json());
+  } catch (err) { /* defaults */ }
+  if (!nick) { buildLevel(); showGate(); return; }
+  loadAvatar(localStorage.getItem("potionrh_avatar") || ("https://unavatar.io/x/" + nick.toLowerCase()));
+  try {
+    const res = await fetch(API + "/api/players", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nick }) });
+    if (res.ok) {
+      const p = await res.json();
+      me = p;
+      for (const k of Object.keys(progress)) progress[k] = progress[k] || !!p.progress[k];
+      localStorage.setItem("potionrh_progress", JSON.stringify(progress));
+      if (!p.evm_address) { buildLevel(); showGate(p.nick); return; }
+    }
+  } catch (err) { /* offline: keep local progress */ }
+  buildLevel();
+  state = "card"; cardT = 0;
+  c.focus();
+}
+buildLevel();
+boot();
+addEventListener("pointerdown", (e) => { if (e.target === c) { c.focus(); if (hitDino(e)) openInvite(); } audio(); });
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
