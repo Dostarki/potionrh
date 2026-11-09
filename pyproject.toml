@@ -12,10 +12,3 @@ dependencies = [
   "pydantic>=2.6.4",
   "python-dotenv>=1.0.1",
 ]
-
-[tool.vercel]
-entrypoint = "backend.server:app"
-
-[tool.vercel.fastapi.static]
-cdn = true
-exclude = true

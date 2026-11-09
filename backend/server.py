@@ -357,10 +357,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# CRA build (public/game.html included). API routes stay ahead of this mount.
-# cwd must be the repo root. check_dir is off so local API boot works before `yarn build`.
-app.frontend("/", directory="frontend/build", fallback="index.html", check_dir=False)
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
