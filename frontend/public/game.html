@@ -1286,7 +1286,12 @@ document.getElementById("copyCode").addEventListener("click", async () => {
 });
 for (const b of document.querySelectorAll("[data-share]")) b.addEventListener("click", async () => {
   const kind = b.dataset.share, msg = inviteMsg();
-  if (kind === "x") { openX("https://x.com/intent/post?text=" + encodeURIComponent(msg)); return; }
+  if (kind === "x") {
+    const url = "https://x.com/intent/post?text=" + encodeURIComponent(msg);
+    if (isMobile()) openX(url);
+    else window.open(url, "_blank", "noopener");
+    return;
+  }
   if (kind === "wa") { window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank", "noopener"); return; }
   const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   if (mobile && navigator.share) { try { await navigator.share({ text: msg }); return; } catch (err) { /* fall back to copy */ } }
