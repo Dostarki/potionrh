@@ -33,6 +33,9 @@ canvas#c{width:min(100vw,calc(100vh * 256 / 240));height:min(100vh,calc(100vw * 
 #go:hover{background:#ffd49a}
 #go:active{transform:translateY(4px);box-shadow:inset 3px 3px 0 #ffe4b8,inset -3px -3px 0 #e89060,0 1px 0 #c06a4a}
 #go:disabled{opacity:.6;cursor:wait}
+#xGo{display:block;margin-top:16px;width:100%;box-sizing:border-box;text-align:center;text-decoration:none;font:inherit;font-size:12px;padding:14px 10px;cursor:pointer;color:#fff;background:#14171a;border:3px solid #000;box-shadow:0 5px 0 #000;text-shadow:2px 2px 0 #000}
+#xGo:hover{background:#2a2f33}
+#xGo:active{transform:translateY(4px);box-shadow:0 1px 0 #000}
 #err{min-height:14px;margin-top:12px;font-size:8px;color:#d6336c;line-height:1.6}
 #touch{display:none;position:fixed;inset:auto 0 0 0;justify-content:space-between;padding:0 12px 14px;pointer-events:none;z-index:4;font-family:"Press Start 2P",monospace}
 #touch .pad{display:flex;gap:10px;pointer-events:auto}
@@ -110,6 +113,14 @@ canvas#c{width:min(100vw,calc(100vh * 256 / 240));height:min(100vh,calc(100vw * 
       <div><h3>TOP REF CODES</h3><ol id="alTop" data-testid="allowlist-top"></ol></div>
     </div>
     <div class="mine" id="alMine" data-testid="allowlist-mine"></div>
+  </div>
+</div>
+<div id="xModal" class="modal hide" data-testid="x-open-modal">
+  <div class="card">
+    <button class="x-close" type="button" data-close data-testid="x-open-close">X</button>
+    <h2 id="xTitle">OPEN X</h2>
+    <p class="sub">TAP TO OPEN IT IN A NEW TAB</p>
+    <a id="xGo" href="https://x.com" target="_blank" rel="noopener" data-testid="x-open-link">OPEN X</a>
   </div>
 </div>
 <div id="invModal" class="modal hide" data-testid="invite-modal">
@@ -347,10 +358,16 @@ function bump(tx, ty) {
     sfx.bump();
     return;
   }
-  if (QUEST_TILES[t]) {
-    put(tx, ty, USED);
-    sparkle(tx, ty);
-    completeQuest(QUEST_TILES[t], tx, ty);
+  const quest = QUESTS.find((q) => q.tx === tx && q.ty === ty);
+  if (quest && (QUEST_TILES[t] || t === USED)) {
+    if (QUEST_TILES[t]) {
+      put(tx, ty, USED);
+      sparkle(tx, ty);
+      completeQuest(quest.kind, tx, ty);
+    } else {
+      sfx.bump();
+      openX(questUrl(quest.kind), X_LABEL[quest.kind]);
+    }
     return;
   }
   if (t === USED) sfx.bump();
@@ -461,8 +478,22 @@ function iosXUrl(action) {
   if (action.kind === "user") return "twitter://user?screen_name=" + encodeURIComponent(action.name);
   return "twitter://";
 }
-function openX(url) {
-  if (!isMobile()) { window.open(url, "_blank", "noopener"); return; }
+const X_LABEL = { follow:"FOLLOW ON X", rt:"REPOST ON X", like:"LIKE ON X", share:"SHARE ON X" };
+function showXCard(url, label) {
+  document.getElementById("xTitle").textContent = label || "OPEN X";
+  const go = document.getElementById("xGo");
+  go.href = url;
+  go.textContent = label || "OPEN X";
+  document.getElementById("xModal").classList.remove("hide");
+  held.clear();
+}
+function openX(url, label) {
+  if (!isMobile()) {
+    const popped = window.open(url, "_blank");
+    if (popped) { popped.opener = null; return; }
+    showXCard(url, label);
+    return;
+  }
   let href = url;
   if (/Android/i.test(navigator.userAgent)) {
     try {
@@ -487,7 +518,7 @@ function completeQuest(kind, tx, ty) {
   if (kind === "rt") { outfit = "white"; popup(px, py, "REPOSTED"); }
   if (kind === "like") { hasPotion = true; popup(px, py, "LIKED"); }
   if (kind === "share") { hasPaper = true; popup(px, py, "SHARED"); }
-  openX(questUrl(kind));
+  openX(questUrl(kind), X_LABEL[kind]);
 }
 
 function updateMario() {
@@ -1158,13 +1189,14 @@ document.getElementById("gateForm").addEventListener("submit", (e) => {
 });
 
 /* ---- invite + allow list ---- */
-const invModal = document.getElementById("invModal"), alModal = document.getElementById("alModal");
+const invModal = document.getElementById("invModal"), alModal = document.getElementById("alModal"), xModal = document.getElementById("xModal");
 const invNote = document.getElementById("invNote");
-const modalOpen = () => !invModal.classList.contains("hide") || !alModal.classList.contains("hide");
+const modalOpen = () => !invModal.classList.contains("hide") || !alModal.classList.contains("hide") || !xModal.classList.contains("hide");
 const inviteLink = () => location.origin + "/?ref=" + me.ref_code;
 const inviteMsg = () => "Join me on PotionRH and grab your potion! Use my ref code " + me.ref_code + " " + inviteLink();
-function closeModals() { invModal.classList.add("hide"); alModal.classList.add("hide"); c.focus(); }
-for (const m of [invModal, alModal]) m.addEventListener("click", (e) => { if (e.target === m || e.target.hasAttribute("data-close")) closeModals(); });
+function closeModals() { invModal.classList.add("hide"); alModal.classList.add("hide"); xModal.classList.add("hide"); c.focus(); }
+for (const m of [invModal, alModal, xModal]) m.addEventListener("click", (e) => { if (e.target === m || e.target.hasAttribute("data-close")) closeModals(); });
+document.getElementById("xGo").addEventListener("click", () => { xModal.classList.add("hide"); c.focus(); });
 addEventListener("keydown", (e) => { if (e.code === "Escape" && modalOpen()) { e.stopImmediatePropagation(); closeModals(); } }, true);
 function openInvite() {
   if (!me || !me.ref_code) return;
