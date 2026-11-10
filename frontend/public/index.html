@@ -19,18 +19,26 @@
                     location.replace("intent://" + path + "#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=" + encodeURIComponent(href) + ";end");
                     return;
                 }
-                document.addEventListener("DOMContentLoaded", function () {
-                    var wall = document.createElement("div");
-                    wall.style.cssText = "position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:24px;background:#3fcde6;font-family:'Press Start 2P',monospace;text-align:center";
+                var safari = href.replace(/^https:/i, "x-safari-https:").replace(/^http:/i, "x-safari-http:");
+                var style = document.createElement("style");
+                style.textContent = "#root{display:none!important}#open-browser{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;padding:24px;background:#3fcde6;text-align:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation}#open-browser span{display:inline-block;max-width:280px;color:#fff;background:#14171a;font:700 14px/1.6 sans-serif;padding:18px 16px;border:3px solid #000;box-shadow:0 5px 0 #000;pointer-events:none}";
+                document.documentElement.appendChild(style);
+                function mount() {
+                    var root = document.getElementById("root");
+                    if (root) root.style.display = "none";
                     var link = document.createElement("a");
-                    link.href = href;
-                    link.target = "_blank";
-                    link.rel = "noopener";
-                    link.textContent = "OPEN IN BROWSER";
-                    link.style.cssText = "display:inline-block;max-width:280px;color:#fff;background:#14171a;text-decoration:none;font-size:12px;line-height:1.6;padding:18px 16px;border:3px solid #000;box-shadow:0 5px 0 #000";
-                    wall.appendChild(link);
-                    document.body.appendChild(wall);
-                });
+                    link.id = "open-browser";
+                    link.href = safari;
+                    var label = document.createElement("span");
+                    label.textContent = "OPEN IN BROWSER";
+                    link.appendChild(label);
+                    link.addEventListener("click", function () {
+                        location.href = safari;
+                    });
+                    document.body.appendChild(link);
+                }
+                if (document.body) mount();
+                else document.addEventListener("DOMContentLoaded", mount);
             })();
         </script>
     </head>
