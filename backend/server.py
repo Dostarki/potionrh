@@ -324,6 +324,11 @@ async def allowlist():
     return {"latest": latest, "leaders": top}
 
 
+@api_router.get("/allowlist/count")
+async def allowlist_count():
+    return {"count": await get_db().players.count_documents({})}
+
+
 @api_router.get("/allowlist/{nick}")
 async def allowlist_find(nick: str):
     key = nick.lower().lstrip("@").strip()
@@ -354,6 +359,19 @@ async def wallet_taken(address: str):
     if not await find_wallet_owner(evm.lower()):
         raise HTTPException(status_code=404, detail="Wallet not registered")
     return {"taken": True}
+
+
+@api_router.get("/players/{nick}/invited")
+async def invited_players(nick: str):
+    key = nick.lower().lstrip("@").strip()
+    doc = await get_db().players.find_one({"nick_key": key}, {"_id": 0, "ref_code": 1})
+    if not doc or not doc.get("ref_code"):
+        return {"invited": []}
+    people = await get_db().players.find(
+        {"referred_by": doc["ref_code"]},
+        {"_id": 0, "nick": 1, "avatar_url": 1},
+    ).sort("created_at", 1).limit(50).to_list(50)
+    return {"invited": people}
 
 
 @api_router.get("/players/{nick}", response_model=Player)

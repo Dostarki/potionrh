@@ -150,6 +150,20 @@ canvas#c{display:block;background:#bfe6ff;outline:none;touch-action:none;image-r
 #alHit .n{color:#137a5b}
 #alHit .pt{margin-left:auto;color:#21ce99}
 #alHit .rc{display:block;color:#b05a8a;font-size:7px;margin-top:3px}
+.count{margin:-6px 0 16px;font-size:8px;color:#137a5b;line-height:1.6}
+#passBtn{position:fixed;top:calc(var(--app-top,0px) + 10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));z-index:4;font-family:"Press Start 2P",monospace;font-size:10px;padding:10px 12px;cursor:pointer;color:#fff;background:#ec4f86;border:3px solid #a8325d;box-shadow:inset 2px 2px 0 #ffb3cc,0 4px 0 #a8325d;text-shadow:2px 2px 0 #a8325d;touch-action:manipulation}
+#passBtn.hide{display:none}
+#passBtn:active{transform:translateY(3px)}
+.pass-nick{margin:0 0 8px;font-size:14px;color:#7a3e78}
+.pass-line{margin:0 0 14px;font-size:8px;color:#b05a8a;word-break:break-all}
+#passShare{display:block;width:100%;margin-top:12px;font:inherit;font-size:10px;padding:14px 8px;cursor:pointer;color:#fff;background:#14171a;border:3px solid #000;box-shadow:0 4px 0 #000;touch-action:manipulation}
+#passShare:active{transform:translateY(3px);box-shadow:0 1px 0 #000}
+.joined{margin-top:16px;text-align:left}
+.joined h3{font-size:9px;color:#7a3e78;margin:0 0 8px;border-bottom:3px solid #f3a6c8;padding-bottom:6px}
+.joined ol{list-style:none;margin:0;padding:0;max-height:140px;overflow:auto}
+.joined li{display:flex;align-items:center;gap:6px;font-size:8px;color:#7a3e78;padding:6px 0;border-bottom:1px dashed #f8cfe0}
+.joined li img{width:18px;height:18px;border:2px solid #fff;box-shadow:0 0 0 1px #f3a6c8;background:#ffe4ee}
+.joined li .n{color:#ec4f86;width:16px}
 </style>
 </head>
 <body>
@@ -159,6 +173,7 @@ canvas#c{display:block;background:#bfe6ff;outline:none;touch-action:none;image-r
     <img class="potion" src="/assets/potion.png" alt="PotionRH potion"/>
     <h1>POTIONRH</h1>
     <p class="sub">PINK DREAM 1-1</p>
+    <p class="count" id="gateCount" data-testid="gate-count"></p>
     <div class="step on" id="stepNick" data-testid="step-nick">
       <label for="nick">1/3 YOUR X USERNAME</label>
       <div class="row">
@@ -185,6 +200,7 @@ canvas#c{display:block;background:#bfe6ff;outline:none;touch-action:none;image-r
   </form>
 </div>
 <button id="alBtn" type="button" data-testid="allowlist-button">ALLOW LIST</button>
+<button id="passBtn" class="hide" type="button" data-testid="pass-button">MY CARD</button>
 <div id="alModal" class="modal hide" data-testid="allowlist-modal">
   <div class="card">
     <button class="x-close" type="button" data-close data-testid="allowlist-close">X</button>
@@ -232,7 +248,23 @@ canvas#c{display:block;background:#bfe6ff;outline:none;touch-action:none;image-r
       <button class="s-dc" type="button" data-share="dc" data-testid="invite-share-discord">DISCORD</button>
       <button class="s-wa" type="button" data-share="wa" data-testid="invite-share-whatsapp">WHATSAPP</button>
     </div>
+    <div class="joined">
+      <h3>JOINED WITH YOUR CODE</h3>
+      <ol id="invited" data-testid="invite-joined"></ol>
+    </div>
     <div class="note" id="invNote" data-testid="invite-note"></div>
+  </div>
+</div>
+<div id="passModal" class="modal hide" data-testid="pass-card">
+  <div class="card">
+    <button class="x-close" type="button" data-close data-testid="pass-close">X</button>
+    <h2>YOUR SPOT</h2>
+    <p class="sub" id="passPlace" data-testid="pass-place">ON THE LIST</p>
+    <p class="pass-nick" id="passNick" data-testid="pass-nick"></p>
+    <p class="pass-line" id="passWallet" data-testid="pass-wallet"></p>
+    <div class="code"><b id="passCode" data-testid="pass-code">PRH-----</b><button class="mini" type="button" id="passCopy" data-testid="pass-copy">COPY</button></div>
+    <button id="passShare" type="button" data-testid="pass-share">SHARE ON X</button>
+    <div class="note" id="passNote" data-testid="pass-note"></div>
   </div>
 </div>
 <div id="stage"><canvas id="c" width="1024" height="960" tabindex="0"></canvas></div>
@@ -646,8 +678,13 @@ function updateMario() {
   if (mario.y > 250) die();
 }
 
+function syncPassBtn() {
+  const btn = document.getElementById("passBtn");
+  if (btn) btn.classList.toggle("hide", doneCount() < 4);
+}
 function update() {
   tick++;
+  syncPassBtn();
   if (press(["KeyM"])) muted = !muted;
   if (press(["Escape"]) && state === "play") pause = !pause;
   if (pause) { edge.clear(); return; }
@@ -1053,7 +1090,7 @@ function nextLetter() {
   if (letterPage < LETTER.length - 1) { showLetter(letterPage + 1); return; }
   localStorage.setItem("potionrh_letter", "done");
   document.getElementById("letterModal").classList.add("hide");
-  c.focus();
+  openPass();
 }
 function maybeLetter() {
   if (letterSeen() || letterOpen || doneCount() < 4) return;
@@ -1281,8 +1318,18 @@ function setStep(i) {
   goBtn.textContent = i === 2 ? "START" : "NEXT"; errBox.textContent = "";
   [nickInput, evmInput, refInput][i].focus();
 }
+async function loadGateCount() {
+  const el = document.getElementById("gateCount");
+  try {
+    const res = await fetch(API + "/api/allowlist/count");
+    if (!res.ok) return;
+    const n = Number((await res.json()).count) || 0;
+    el.textContent = n.toLocaleString("en-US") + (n === 1 ? " PLAYER ON THE LIST" : " PLAYERS ON THE LIST");
+  } catch (err) { /* leave the line blank offline */ }
+}
 function showGate(evmFor) {
   gate.classList.remove("hide"); requestAnimationFrame(drawGateBg);
+  loadGateCount();
   if (evmFor) { pendingNick = evmFor; nickInput.value = evmFor; document.getElementById("who").textContent = "@" + evmFor.toUpperCase(); }
   setStep(evmFor ? 1 : 0);
 }
@@ -1360,11 +1407,12 @@ document.getElementById("gateForm").addEventListener("submit", (e) => {
 const invModal = document.getElementById("invModal"), alModal = document.getElementById("alModal"), xModal = document.getElementById("xModal");
 const invNote = document.getElementById("invNote");
 const letterModal = document.getElementById("letterModal");
-const modalOpen = () => !invModal.classList.contains("hide") || !alModal.classList.contains("hide") || !xModal.classList.contains("hide") || !letterModal.classList.contains("hide");
+const passModal = document.getElementById("passModal");
+const modalOpen = () => !invModal.classList.contains("hide") || !alModal.classList.contains("hide") || !xModal.classList.contains("hide") || !letterModal.classList.contains("hide") || !passModal.classList.contains("hide");
 const inviteLink = () => location.origin + "/?ref=" + me.ref_code;
 const inviteMsg = () => "Join me on PotionRH and grab your potion! Use my ref code " + me.ref_code + " " + inviteLink();
-function closeModals() { invModal.classList.add("hide"); alModal.classList.add("hide"); xModal.classList.add("hide"); c.focus(); }
-for (const m of [invModal, alModal, xModal]) m.addEventListener("click", (e) => { if (e.target === m || e.target.hasAttribute("data-close")) closeModals(); });
+function closeModals() { invModal.classList.add("hide"); alModal.classList.add("hide"); xModal.classList.add("hide"); passModal.classList.add("hide"); c.focus(); }
+for (const m of [invModal, alModal, xModal, passModal]) m.addEventListener("click", (e) => { if (e.target === m || e.target.hasAttribute("data-close")) closeModals(); });
 document.getElementById("xGo").addEventListener("click", (e) => {
   const https = e.currentTarget.href;
   const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent || "") || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -1389,7 +1437,47 @@ function openInvite() {
   held.clear();
   document.getElementById("invCode").textContent = me.ref_code;
   invNote.textContent = "";
+  document.getElementById("invited").innerHTML = "<li>LOADING...</li>";
   invModal.classList.remove("hide");
+  loadInvited();
+}
+async function loadInvited() {
+  const ol = document.getElementById("invited");
+  try {
+    const res = await fetch(API + "/api/players/" + encodeURIComponent(me.nick) + "/invited");
+    if (!res.ok) throw new Error("bad status");
+    const people = (await res.json()).invited || [];
+    ol.innerHTML = people.map((p, i) => row(i, p) + "</li>").join("") || "<li>NOBODY YET</li>";
+  } catch (err) { ol.innerHTML = "<li>COULD NOT LOAD</li>"; }
+}
+function shortWallet(address) {
+  if (!address || address.length < 10) return "NO WALLET YET";
+  return address.slice(0, 6) + "..." + address.slice(-4);
+}
+let passPlace = "";
+function passText() {
+  const name = (me && me.nick) || nick;
+  const spot = passPlace ? "I'm #" + passPlace + " on the PotionRH allow list. " : "I joined the PotionRH allow list. ";
+  const code = me && me.ref_code ? "Ref " + me.ref_code + ". " : "";
+  return spot + "@" + name + " " + shortWallet(me && me.evm_address) + ". " + code + location.origin + "/";
+}
+async function openPass() {
+  const name = (me && me.nick) || nick;
+  if (!name) return;
+  held.clear();
+  passPlace = "";
+  document.getElementById("passNick").textContent = "@" + name;
+  document.getElementById("passWallet").textContent = shortWallet(me && me.evm_address);
+  document.getElementById("passCode").textContent = (me && me.ref_code) || "----";
+  document.getElementById("passPlace").textContent = "FINDING YOUR SPOT...";
+  document.getElementById("passNote").textContent = "";
+  passModal.classList.remove("hide");
+  try {
+    const res = await fetch(API + "/api/allowlist/" + encodeURIComponent(name));
+    if (!res.ok) { document.getElementById("passPlace").textContent = "ON THE LIST"; return; }
+    passPlace = String((await res.json()).place);
+    document.getElementById("passPlace").textContent = "#" + passPlace + " ON THE LIST";
+  } catch (err) { document.getElementById("passPlace").textContent = "ON THE LIST"; }
 }
 async function copyText(t) {
   try { await navigator.clipboard.writeText(t); return true; } catch (err) {
@@ -1399,6 +1487,18 @@ async function copyText(t) {
 }
 document.getElementById("copyCode").addEventListener("click", async () => {
   invNote.textContent = (await copyText(me.ref_code)) ? "CODE COPIED" : "COPY FAILED";
+});
+document.getElementById("passBtn").addEventListener("click", () => openPass());
+document.getElementById("passCopy").addEventListener("click", async () => {
+  document.getElementById("passNote").textContent = (await copyText(passText())) ? "CARD COPIED" : "COPY FAILED";
+});
+document.getElementById("passShare").addEventListener("click", () => {
+  const url = "https://x.com/intent/post?text=" + encodeURIComponent(passText());
+  if (isMobile() && /Android/i.test(navigator.userAgent || "")) openX(url, "SHARE ON X");
+  else {
+    const popup = window.open(url, "_blank", "noopener");
+    if (!popup) showXCard(url, "SHARE ON X");
+  }
 });
 for (const b of document.querySelectorAll("[data-share]")) b.addEventListener("click", async () => {
   const kind = b.dataset.share, msg = inviteMsg();
