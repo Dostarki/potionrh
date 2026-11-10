@@ -9,6 +9,30 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
         <title>PotionRH</title>
+        <script>
+            (function () {
+                var ua = navigator.userAgent || "";
+                if (!/Twitter/i.test(ua)) return;
+                var href = location.href;
+                if (/Android/i.test(ua)) {
+                    var path = href.replace(/^https?:\/\//, "");
+                    location.replace("intent://" + path + "#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=" + encodeURIComponent(href) + ";end");
+                    return;
+                }
+                document.addEventListener("DOMContentLoaded", function () {
+                    var wall = document.createElement("div");
+                    wall.style.cssText = "position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:24px;background:#3fcde6;font-family:'Press Start 2P',monospace;text-align:center";
+                    var link = document.createElement("a");
+                    link.href = href;
+                    link.target = "_blank";
+                    link.rel = "noopener";
+                    link.textContent = "OPEN IN BROWSER";
+                    link.style.cssText = "display:inline-block;max-width:280px;color:#fff;background:#14171a;text-decoration:none;font-size:12px;line-height:1.6;padding:18px 16px;border:3px solid #000;box-shadow:0 5px 0 #000";
+                    wall.appendChild(link);
+                    document.body.appendChild(wall);
+                });
+            })();
+        </script>
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>

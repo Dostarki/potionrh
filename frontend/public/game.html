@@ -4,6 +4,18 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
 <title>PotionRH</title>
+<script>
+(function () {
+  if (window.top !== window) return;
+  var ua = navigator.userAgent || "";
+  if (!/Twitter/i.test(ua)) return;
+  var href = location.href;
+  if (/Android/i.test(ua)) {
+    var path = href.replace(/^https?:\/\//, "");
+    location.replace("intent://" + path + "#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=" + encodeURIComponent(href) + ";end");
+  }
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
 <style>
@@ -506,20 +518,8 @@ function showXCard(url, label) {
   document.getElementById("xModal").classList.remove("hide");
   held.clear();
 }
-function insideXApp() {
-  const ua = navigator.userAgent || "";
-  if (/Twitter/i.test(ua) || /\bwv\b/.test(ua)) return true;
-  try {
-    return /(^|\.)(x\.com|twitter\.com|t\.co)$/i.test(new URL(document.referrer).hostname);
-  } catch (err) { return false; }
-}
 function openX(url, label) {
   if (!isMobile()) { showXCard(url, label); return; }
-  if (insideXApp()) {
-    try { (window.top || window).location.href = url; }
-    catch (err) { window.location.href = url; }
-    return;
-  }
   let href = url;
   if (/Android/i.test(navigator.userAgent)) {
     try {
