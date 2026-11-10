@@ -2,13 +2,43 @@
 <html lang="en">
     <head>
         <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#000000" />
         <meta name="description" content="PotionRH" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
         <title>PotionRH</title>
+        <style>
+            html, body { margin: 0; height: 100%; overflow: hidden; background: #3fcde6; overscroll-behavior: none; }
+            #root {
+                position: fixed;
+                top: var(--app-top, 0px);
+                left: 0;
+                width: var(--app-w, 100%);
+                height: var(--app-h, 100dvh);
+                overflow: hidden;
+                background: #3fcde6;
+            }
+        </style>
+        <script>
+            (function () {
+                function fit() {
+                    var vv = window.visualViewport;
+                    var s = document.documentElement.style;
+                    s.setProperty("--app-w", (vv ? vv.width : window.innerWidth) + "px");
+                    s.setProperty("--app-h", (vv ? vv.height : window.innerHeight) + "px");
+                    s.setProperty("--app-top", (vv ? vv.offsetTop : 0) + "px");
+                }
+                fit();
+                addEventListener("resize", fit);
+                addEventListener("orientationchange", function () { setTimeout(fit, 200); });
+                if (window.visualViewport) {
+                    visualViewport.addEventListener("resize", fit);
+                    visualViewport.addEventListener("scroll", fit);
+                }
+            })();
+        </script>
         <script>
             (function () {
                 if (window.top !== window) return;

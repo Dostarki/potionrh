@@ -13,7 +13,7 @@ function GameFrame() {
       title="PotionRH"
       src={src}
       allow="clipboard-write; web-share"
-      style={{ position: "fixed", inset: 0, width: "100%", height: "100%", border: 0, background: "#3fcde6" }}
+      style={{ display: "block", width: "100%", height: "100%", border: 0, background: "#3fcde6" }}
     />
   );
 }

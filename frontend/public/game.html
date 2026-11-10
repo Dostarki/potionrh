@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>PotionRH</title>
 <script>
 (function () {
@@ -34,13 +34,44 @@
   var safari = https.replace(/^https:/i, "x-safari-https:").replace(/^http:/i, "x-safari-http:");
   location.replace(safari);
 })();
+(function () {
+  function fit() {
+    var vv = window.visualViewport;
+    var s = document.documentElement.style;
+    s.setProperty("--app-w", (vv ? vv.width : window.innerWidth) + "px");
+    s.setProperty("--app-h", (vv ? vv.height : window.innerHeight) + "px");
+    s.setProperty("--app-top", (vv ? vv.offsetTop : 0) + "px");
+    var stage = document.getElementById("stage");
+    var canvas = document.getElementById("c");
+    if (!stage || !canvas) return;
+    var cs = getComputedStyle(stage);
+    var innerW = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    var innerH = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (!(innerW > 0) || !(innerH > 0)) return;
+    var ratio = 256 / 240;
+    var w = innerW, h = w / ratio;
+    if (h > innerH) { h = innerH; w = h * ratio; }
+    canvas.style.width = Math.floor(w) + "px";
+    canvas.style.height = Math.floor(h) + "px";
+  }
+  fit();
+  addEventListener("resize", fit);
+  addEventListener("orientationchange", function () { setTimeout(fit, 250); });
+  if (window.visualViewport) {
+    visualViewport.addEventListener("resize", fit);
+    visualViewport.addEventListener("scroll", fit);
+  }
+  document.addEventListener("DOMContentLoaded", fit);
+})();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
 <style>
-html,body{margin:0;height:100%;background:#3fcde6;background-image:radial-gradient(rgba(20,140,180,.25) 1px,transparent 1px);background-size:14px 14px;display:grid;place-items:center;overflow:hidden}
-canvas#c{width:min(100vw,calc(100vh * 256 / 240));height:min(100vh,calc(100vw * 240 / 256));image-rendering:pixelated;image-rendering:crisp-edges;background:#bfe6ff;outline:none;touch-action:none;box-shadow:0 0 0 4px #fff,0 0 0 8px #f3a6c8,0 18px 40px rgba(160,80,130,.35)}
-#gate{position:fixed;inset:0;display:grid;place-items:center;font-family:"Press Start 2P",monospace;z-index:7;overflow:hidden}
+html,body{margin:0;width:100%;height:100%;background:#3fcde6;background-image:radial-gradient(rgba(20,140,180,.25) 1px,transparent 1px);background-size:14px 14px;overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+#stage{position:fixed;top:var(--app-top,0px);left:0;width:var(--app-w,100vw);height:var(--app-h,100dvh);display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:calc(16px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) calc(16px + env(safe-area-inset-left,0px));z-index:1}
+canvas#c{display:block;background:#bfe6ff;outline:none;touch-action:none;image-rendering:-webkit-optimize-contrast;image-rendering:pixelated;image-rendering:crisp-edges;box-shadow:0 0 0 4px #fff,0 0 0 8px #f3a6c8}
+@media (pointer:coarse){#stage{padding-top:calc(58px + env(safe-area-inset-top,0px));padding-bottom:calc(108px + env(safe-area-inset-bottom,0px))}}
+#gate{position:fixed;top:var(--app-top,0px);left:0;width:var(--app-w,100vw);height:var(--app-h,100dvh);display:grid;place-items:center;font-family:"Press Start 2P",monospace;z-index:7;overflow:auto;box-sizing:border-box;padding:24px 12px}
 #gate.hide{display:none}
 #bg{position:absolute;inset:0;width:100%;height:100%}
 .card{position:relative;width:min(92vw,420px);background:#fff6fa;border:4px solid #f3a6c8;box-shadow:0 0 0 4px #fff,10px 10px 0 rgba(20,90,110,.35);padding:22px 24px 24px;text-align:center}
@@ -51,7 +82,7 @@ canvas#c{width:min(100vw,calc(100vh * 256 / 240));height:min(100vh,calc(100vw * 
 .card label{display:block;font-size:10px;color:#7a3e78;margin-bottom:10px;text-align:left}
 .row{display:flex;gap:10px;align-items:stretch}
 .row .at{font-size:14px;color:#ec4f86;background:#ffe4ee;border:3px solid #f3a6c8;display:grid;place-items:center;width:40px}
-#nick,#evm,#refin{flex:1;min-width:0;font:inherit;font-size:12px;padding:12px 10px;color:#7a3e78;background:#fff;border:3px solid #f3a6c8;outline:none;text-transform:lowercase}
+#nick,#evm,#refin{flex:1;min-width:0;font:inherit;font-size:16px;padding:12px 10px;color:#7a3e78;background:#fff;border:3px solid #f3a6c8;outline:none;text-transform:lowercase}
 #evm{font-size:9px;text-transform:none}
 #refin{text-transform:uppercase}
 #nick:focus,#evm:focus,#refin:focus{border-color:#ec4f86;box-shadow:inset 0 0 0 2px #ffd6e8}
@@ -76,16 +107,16 @@ canvas#c{width:min(100vw,calc(100vh * 256 / 240));height:min(100vh,calc(100vw * 
 #letterNext{width:72px;height:48px;font:inherit;font-size:16px;cursor:pointer;color:#fff;background:#ec4f86;border:3px solid #a8325d;box-shadow:0 4px 0 #a8325d}
 #letterNext:active{transform:translateY(3px);box-shadow:0 1px 0 #a8325d}
 #err{min-height:14px;margin-top:12px;font-size:8px;color:#d6336c;line-height:1.6}
-#touch{display:none;position:fixed;inset:auto 0 0 0;justify-content:space-between;padding:0 12px 14px;pointer-events:none;z-index:4;font-family:"Press Start 2P",monospace}
+#touch{display:none;position:fixed;left:0;width:var(--app-w,100vw);top:calc(var(--app-top,0px) + var(--app-h,100dvh) - 96px);height:96px;box-sizing:border-box;align-items:flex-end;justify-content:space-between;padding:0 calc(12px + env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) calc(12px + env(safe-area-inset-left,0px));pointer-events:none;z-index:4;font-family:"Press Start 2P",monospace}
 #touch .pad{display:flex;gap:10px;pointer-events:auto}
 #touch button{width:64px;height:64px;border-radius:50%;border:3px solid #c06a4a;background:rgba(255,190,120,.85);color:#fff;font:inherit;font-size:11px;text-shadow:2px 2px 0 #c06a4a;box-shadow:0 4px 0 #c06a4a;touch-action:none;user-select:none;-webkit-user-select:none}
 #touch button:active{transform:translateY(3px);box-shadow:0 1px 0 #c06a4a}
 @media (pointer:coarse){#touch{display:flex}}
-#alBtn{position:fixed;top:10px;left:10px;z-index:4;font-family:"Press Start 2P",monospace;font-size:10px;padding:10px 12px;cursor:pointer;color:#fff;background:#21ce99;border:3px solid #137a5b;box-shadow:inset 2px 2px 0 #7af0c8,0 4px 0 #137a5b;text-shadow:2px 2px 0 #137a5b;transition:transform .08s}
+#alBtn{position:fixed;top:calc(var(--app-top,0px) + 10px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));z-index:4;font-family:"Press Start 2P",monospace;font-size:10px;padding:10px 12px;cursor:pointer;color:#fff;background:#21ce99;border:3px solid #137a5b;box-shadow:inset 2px 2px 0 #7af0c8,0 4px 0 #137a5b;text-shadow:2px 2px 0 #137a5b;transition:transform .08s;touch-action:manipulation}
 #alBtn:active{transform:translateY(3px)}
-.modal{position:fixed;inset:0;z-index:6;display:grid;place-items:center;background:rgba(10,70,90,.55);backdrop-filter:blur(6px);font-family:"Press Start 2P",monospace}
+.modal{position:fixed;top:var(--app-top,0px);left:0;width:var(--app-w,100vw);height:var(--app-h,100dvh);z-index:6;display:grid;place-items:center;background:rgba(10,70,90,.72);font-family:"Press Start 2P",monospace;box-sizing:border-box;padding:16px}
 .modal.hide{display:none}
-.modal .card{width:min(94vw,560px);max-height:90vh;overflow:auto;animation:pop .25s ease-out}
+.modal .card{width:min(94vw,560px);max-height:calc(var(--app-h, 100dvh) - 32px);overflow:auto;animation:pop .25s ease-out}
 .modal h2{margin:0 0 14px;font-size:16px;color:#ec4f86;text-shadow:2px 2px 0 #fbd2e4}
 .x-close{position:absolute;top:8px;right:10px;background:none;border:0;font:inherit;font-size:12px;color:#b05a8a;cursor:pointer}
 .code{display:flex;gap:8px;align-items:center;justify-content:center;margin:0 0 16px}
@@ -159,7 +190,7 @@ canvas#c{width:min(100vw,calc(100vh * 256 / 240));height:min(100vh,calc(100vw * 
     <button class="x-close" type="button" data-close data-testid="x-open-close">X</button>
     <h2 id="xTitle">OPEN X</h2>
     <p class="sub">TAP TO OPEN IT IN A NEW TAB</p>
-    <a id="xGo" href="https://x.com" target="_blank" rel="noopener" data-testid="x-open-link">OPEN X</a>
+    <a id="xGo" href="https://x.com" target="_blank" rel="noopener noreferrer" data-testid="x-open-link">OPEN X</a>
   </div>
 </div>
 <div id="letterModal" class="modal hide" data-testid="whitelist-letter">
@@ -188,7 +219,7 @@ canvas#c{width:min(100vw,calc(100vh * 256 / 240));height:min(100vh,calc(100vw * 
     <div class="note" id="invNote" data-testid="invite-note"></div>
   </div>
 </div>
-<canvas id="c" width="1024" height="960" tabindex="0"></canvas>
+<div id="stage"><canvas id="c" width="1024" height="960" tabindex="0"></canvas></div>
 <div id="touch" data-testid="touch-controls">
   <div class="pad"><button data-k="ArrowLeft" data-testid="touch-left">&#9664;</button><button data-k="ArrowRight" data-testid="touch-right">&#9654;</button></div>
   <div class="pad"><button data-k="KeyX" data-testid="touch-run">RUN</button><button data-k="Space" data-testid="touch-jump">JUMP</button></div>
@@ -538,19 +569,15 @@ function showXCard(url, label) {
   held.clear();
 }
 function openX(url, label) {
-  if (!isMobile()) { showXCard(url, label); return; }
+  const ua = navigator.userAgent || "";
+  if (!/Android/i.test(ua)) { showXCard(url, label); return; }
   let href = url;
-  if (/Android/i.test(navigator.userAgent)) {
-    try {
-      const u = new URL(url);
-      if (/(^|\.)(x|twitter)\.com$/i.test(u.hostname)) {
-        href = "intent://" + u.host + u.pathname + u.search + "#Intent;scheme=https;package=com.twitter.android;end";
-      }
-    } catch (err) { /* keep href */ }
-  } else {
-    const action = xAction(url);
-    if (action) href = iosXUrl(action);
-  }
+  try {
+    const u = new URL(url);
+    if (/(^|\.)(x|twitter)\.com$/i.test(u.hostname)) {
+      href = "intent://" + u.host + u.pathname + u.search + "#Intent;scheme=https;package=com.twitter.android;end";
+    }
+  } catch (err) { /* keep href */ }
   try { (window.top || window).location.href = href; }
   catch (err) { window.location.href = href; }
 }
@@ -1322,7 +1349,19 @@ const inviteLink = () => location.origin + "/?ref=" + me.ref_code;
 const inviteMsg = () => "Join me on PotionRH and grab your potion! Use my ref code " + me.ref_code + " " + inviteLink();
 function closeModals() { invModal.classList.add("hide"); alModal.classList.add("hide"); xModal.classList.add("hide"); c.focus(); }
 for (const m of [invModal, alModal, xModal]) m.addEventListener("click", (e) => { if (e.target === m || e.target.hasAttribute("data-close")) closeModals(); });
-document.getElementById("xGo").addEventListener("click", () => { xModal.classList.add("hide"); c.focus(); });
+document.getElementById("xGo").addEventListener("click", (e) => {
+  const https = e.currentTarget.href;
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent || "") || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (ios) {
+    const action = xAction(https);
+    if (action) {
+      e.preventDefault();
+      try { (window.top || window).location.href = iosXUrl(action); }
+      catch (err) { window.open(https, "_blank", "noopener"); }
+    }
+  }
+  setTimeout(() => { xModal.classList.add("hide"); c.focus(); }, 500);
+});
 document.getElementById("letterNext").addEventListener("click", nextLetter);
 addEventListener("keydown", (e) => {
   if (letterModal.classList.contains("hide")) return;
@@ -1349,8 +1388,11 @@ for (const b of document.querySelectorAll("[data-share]")) b.addEventListener("c
   const kind = b.dataset.share, msg = inviteMsg();
   if (kind === "x") {
     const url = "https://x.com/intent/post?text=" + encodeURIComponent(msg);
-    if (isMobile()) openX(url);
-    else window.open(url, "_blank", "noopener");
+    if (isMobile() && /Android/i.test(navigator.userAgent || "")) openX(url);
+    else {
+      const popup = window.open(url, "_blank", "noopener");
+      if (!popup) showXCard(url, "SHARE ON X");
+    }
     return;
   }
   if (kind === "wa") { window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank", "noopener"); return; }
