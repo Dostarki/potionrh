@@ -8,12 +8,31 @@
 (function () {
   if (window.top !== window) return;
   var ua = navigator.userAgent || "";
-  if (!/Twitter/i.test(ua)) return;
-  var href = location.href;
-  if (/Android/i.test(ua)) {
-    var path = href.replace(/^https?:\/\//, "");
-    location.replace("intent://" + path + "#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=" + encodeURIComponent(href) + ";end");
+  var mobile = /Android|iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (!mobile) return;
+  var url;
+  try { url = new URL(location.href); } catch (e) { return; }
+  if (url.searchParams.get("out") === "1") {
+    url.searchParams.delete("out");
+    try { history.replaceState(null, "", url.pathname + url.search + url.hash); } catch (err) {}
+    return;
   }
+  var ref = "";
+  try { ref = document.referrer || ""; } catch (e) {}
+  var host = "";
+  try { host = new URL(ref).hostname; } catch (e) {}
+  var inX = /Twitter/i.test(ua) || /(^|\.)(t\.co|x\.com|twitter\.com)$/i.test(host) || /^android-app:\/\/com\.(twitter|x\.)/i.test(ref);
+  if (!inX) return;
+  if (/CriOS|FxiOS|EdgiOS|OPiOS|SamsungBrowser/i.test(ua)) return;
+  if (/Android/i.test(ua) && /Chrome\/\d/i.test(ua) && !/\bwv\b/.test(ua) && !/Twitter/i.test(ua)) return;
+  url.searchParams.set("out", "1");
+  var https = url.origin + url.pathname + url.search;
+  if (/Android/i.test(ua)) {
+    location.replace("intent://" + url.host + url.pathname + url.search + "#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=" + encodeURIComponent(https) + ";end");
+    return;
+  }
+  var safari = https.replace(/^https:/i, "x-safari-https:").replace(/^http:/i, "x-safari-http:");
+  location.replace(safari);
 })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
