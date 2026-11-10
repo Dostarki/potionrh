@@ -139,6 +139,17 @@ canvas#c{display:block;background:#bfe6ff;outline:none;touch-action:none;image-r
 .cols li .pt{margin-left:auto;color:#21ce99}
 .cols li .rc{display:block;color:#b05a8a;font-size:7px;margin-top:3px}
 .mine{margin-top:14px;font-size:8px;color:#7a3e78;line-height:1.8}
+.find{display:flex;gap:8px;margin:0 0 12px}
+.find input{flex:1;min-width:0;font:inherit;font-size:16px;padding:10px;color:#7a3e78;background:#fff;border:3px solid #f3a6c8;outline:none;text-transform:lowercase}
+.find button{font:inherit;font-size:8px;padding:10px 12px;cursor:pointer;color:#fff;background:#21ce99;border:3px solid #137a5b;box-shadow:0 3px 0 #137a5b;touch-action:manipulation}
+.find button:active{transform:translateY(2px);box-shadow:0 1px 0 #137a5b}
+#alHit{min-height:14px;margin:0 0 12px;font-size:8px;color:#d6336c;text-align:left;line-height:1.6}
+#alHit ol{list-style:none;margin:0;padding:0}
+#alHit li{display:flex;align-items:center;gap:8px;font-size:8px;color:#7a3e78;padding:8px;background:#e9fff6;border:3px solid #21ce99}
+#alHit img{width:18px;height:18px;border:2px solid #fff;box-shadow:0 0 0 1px #21ce99;background:#fff}
+#alHit .n{color:#137a5b}
+#alHit .pt{margin-left:auto;color:#21ce99}
+#alHit .rc{display:block;color:#b05a8a;font-size:7px;margin-top:3px}
 </style>
 </head>
 <body>
@@ -178,6 +189,11 @@ canvas#c{display:block;background:#bfe6ff;outline:none;touch-action:none;image-r
   <div class="card">
     <button class="x-close" type="button" data-close data-testid="allowlist-close">X</button>
     <h2>ALLOW LIST</h2>
+    <form id="alFind" class="find">
+      <input id="alNick" data-testid="allowlist-search" maxlength="12" autocomplete="off" spellcheck="false" placeholder="your username"/>
+      <button type="submit" data-testid="allowlist-find">FIND</button>
+    </form>
+    <div id="alHit" data-testid="allowlist-hit"></div>
     <div class="cols">
       <div><h3>LATEST 10</h3><ol id="alLatest" data-testid="allowlist-latest"></ol></div>
       <div><h3>TOP REF CODES</h3><ol id="alTop" data-testid="allowlist-top"></ol></div>
@@ -1406,11 +1422,28 @@ const esc = (t) => String(t).replace(/[&<>"']/g, (ch) => "&#" + ch.charCodeAt(0)
 function row(i, p, extra) {
   return '<li><span class="n">' + (i + 1) + '</span><img src="' + esc(p.avatar_url) + '" alt="" loading="lazy"/><span>@' + esc(p.nick) + (extra || "") + "</span>";
 }
+async function findAllow(raw) {
+  const hit = document.getElementById("alHit");
+  const clean = raw.trim().replace(/^@+/, "");
+  if (!/^[A-Za-z0-9_]{2,12}$/.test(clean)) { hit.textContent = "2-12 CHARS: LETTERS, DIGITS, _"; return; }
+  hit.textContent = "LOOKING...";
+  try {
+    const res = await fetch(API + "/api/allowlist/" + encodeURIComponent(clean));
+    if (res.status === 404) { hit.textContent = "NOT ON THE ALLOW LIST"; return; }
+    if (!res.ok) { hit.textContent = "COULD NOT CHECK"; return; }
+    const p = await res.json();
+    const code = p.ref_code ? '<span class="rc">' + esc(p.ref_code) + "</span>" : "";
+    hit.innerHTML = '<ol><li><span class="n">#' + p.place + '</span><img src="' + esc(p.avatar_url) + '" alt="" loading="lazy"/><span>@' + esc(p.nick) + code + '</span><span class="pt">' + p.points + " PTS</span></li></ol>";
+  } catch (err) { hit.textContent = "COULD NOT CHECK"; }
+}
 async function openAllowList() {
   held.clear();
   alModal.classList.remove("hide");
   const latest = document.getElementById("alLatest"), top = document.getElementById("alTop");
+  const search = document.getElementById("alNick");
   latest.innerHTML = top.innerHTML = "<li>LOADING...</li>";
+  document.getElementById("alHit").textContent = "";
+  search.value = nick || "";
   document.getElementById("alMine").innerHTML = me && me.ref_code ? "YOUR CODE: <b>" + esc(me.ref_code) + "</b> &middot; " + me.points + " PTS" : "";
   try {
     const res = await fetch(API + "/api/allowlist");
@@ -1418,8 +1451,10 @@ async function openAllowList() {
     latest.innerHTML = d.latest.map((p, i) => row(i, p) + "</li>").join("") || "<li>NO PLAYERS YET</li>";
     top.innerHTML = d.leaders.map((p, i) => row(i, p, '<span class="rc">' + esc(p.ref_code) + "</span>") + '<span class="pt">' + p.points + " PTS</span></li>").join("") || "<li>NO INVITES YET</li>";
   } catch (err) { latest.innerHTML = top.innerHTML = "<li>COULD NOT LOAD</li>"; }
+  search.focus();
 }
 document.getElementById("alBtn").addEventListener("click", openAllowList);
+document.getElementById("alFind").addEventListener("submit", (e) => { e.preventDefault(); findAllow(document.getElementById("alNick").value); });
 
 async function boot() {
   try {

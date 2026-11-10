@@ -324,6 +324,28 @@ async def allowlist():
     return {"latest": latest, "leaders": top}
 
 
+@api_router.get("/allowlist/{nick}")
+async def allowlist_find(nick: str):
+    key = nick.lower().lstrip("@").strip()
+    if not re.fullmatch(r"[a-z0-9_]{2,12}", key):
+        raise HTTPException(status_code=422, detail="Enter a username")
+    doc = await get_db().players.find_one(
+        {"nick_key": key},
+        {"_id": 0, "nick": 1, "avatar_url": 1, "created_at": 1, "ref_code": 1, "invites": 1},
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Not on the allow list")
+    place = await get_db().players.count_documents({"created_at": {"$lt": doc.get("created_at", "")}}) + 1
+    invites = doc.get("invites", 0)
+    return {
+        "nick": doc["nick"],
+        "avatar_url": doc.get("avatar_url") or f"https://unavatar.io/x/{key}",
+        "ref_code": doc.get("ref_code"),
+        "points": invites * POINTS_PER_INVITE,
+        "place": place,
+    }
+
+
 @api_router.get("/wallets/{address}")
 async def wallet_taken(address: str):
     evm = address.strip()
