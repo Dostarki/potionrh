@@ -503,8 +503,20 @@ function showXCard(url, label) {
   document.getElementById("xModal").classList.remove("hide");
   held.clear();
 }
+function insideXApp() {
+  const ua = navigator.userAgent || "";
+  if (/Twitter/i.test(ua) || /\bwv\b/.test(ua)) return true;
+  try {
+    return /(^|\.)(x\.com|twitter\.com|t\.co)$/i.test(new URL(document.referrer).hostname);
+  } catch (err) { return false; }
+}
 function openX(url, label) {
   if (!isMobile()) { showXCard(url, label); return; }
+  if (insideXApp()) {
+    try { (window.top || window).location.href = url; }
+    catch (err) { window.location.href = url; }
+    return;
+  }
   let href = url;
   if (/Android/i.test(navigator.userAgent)) {
     try {
