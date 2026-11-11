@@ -576,37 +576,6 @@ function questUrl(kind) {
   if (kind === "like") return links.like_url;
   return "https://x.com/intent/post?text=" + encodeURIComponent(links.share_text + " " + links.share_url);
 }
-function isMobile() {
-  const ua = navigator.userAgent || "";
-  return /Android|iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-}
-function xAction(url) {
-  try {
-    const u = new URL(url);
-    if (!/(^|\.)(x|twitter)\.com$/i.test(u.hostname)) return null;
-    const p = u.pathname.split("/").filter(Boolean);
-    const statusAt = p.indexOf("status");
-    if (statusAt >= 0 && /^\d+$/.test(p[statusAt + 1] || "")) return { kind:"status", id:p[statusAt + 1] };
-    if (p[0] === "intent") {
-      const text = u.searchParams.get("text") || "";
-      const tweetId = u.searchParams.get("tweet_id") || "";
-      const name = (u.searchParams.get("screen_name") || "").replace(/^@/, "");
-      if (p[1] === "post" || p[1] === "tweet") return { kind:"post", text };
-      if (/^\d+$/.test(tweetId)) return { kind:"status", id:tweetId };
-      if (name) return { kind:"user", name };
-    }
-    if (p.length === 1 && !/^(home|explore|search|i|share|messages|settings|compose)$/i.test(p[0])) {
-      return { kind:"user", name:p[0].replace(/^@/, "") };
-    }
-    return { kind:"app" };
-  } catch (err) { return null; }
-}
-function iosXUrl(action) {
-  if (action.kind === "status") return "twitter://status?id=" + encodeURIComponent(action.id);
-  if (action.kind === "post") return "twitter://post?message=" + encodeURIComponent(action.text);
-  if (action.kind === "user") return "twitter://user?screen_name=" + encodeURIComponent(action.name);
-  return "twitter://";
-}
 const X_LABEL = { follow:"FOLLOW ON X", rt:"REPOST ON X", like:"LIKE ON X", share:"SHARE ON X" };
 function showXCard(url, label) {
   document.getElementById("xTitle").textContent = label || "OPEN X";
@@ -616,18 +585,12 @@ function showXCard(url, label) {
   document.getElementById("xModal").classList.remove("hide");
   held.clear();
 }
+function launchX(url, label) {
+  const popup = window.open(url, "_blank", "noopener");
+  if (!popup) showXCard(url, label || "OPEN X");
+}
 function openX(url, label) {
-  const ua = navigator.userAgent || "";
-  if (!/Android/i.test(ua)) { showXCard(url, label); return; }
-  let href = url;
-  try {
-    const u = new URL(url);
-    if (/(^|\.)(x|twitter)\.com$/i.test(u.hostname)) {
-      href = "intent://" + u.host + u.pathname + u.search + "#Intent;scheme=https;package=com.twitter.android;end";
-    }
-  } catch (err) { /* keep href */ }
-  try { (window.top || window).location.href = href; }
-  catch (err) { window.location.href = href; }
+  showXCard(url, label);
 }
 function completeQuest(kind, tx, ty) {
   progress[kind] = true;
@@ -1413,17 +1376,7 @@ const inviteLink = () => location.origin + "/?ref=" + me.ref_code;
 const inviteMsg = () => "Join me on PotionRH and grab your potion! Use my ref code " + me.ref_code + " " + inviteLink();
 function closeModals() { invModal.classList.add("hide"); alModal.classList.add("hide"); xModal.classList.add("hide"); passModal.classList.add("hide"); c.focus(); }
 for (const m of [invModal, alModal, xModal, passModal]) m.addEventListener("click", (e) => { if (e.target === m || e.target.hasAttribute("data-close")) closeModals(); });
-document.getElementById("xGo").addEventListener("click", (e) => {
-  const https = e.currentTarget.href;
-  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent || "") || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  if (ios) {
-    const action = xAction(https);
-    if (action) {
-      e.preventDefault();
-      try { (window.top || window).location.href = iosXUrl(action); }
-      catch (err) { window.open(https, "_blank", "noopener"); }
-    }
-  }
+document.getElementById("xGo").addEventListener("click", () => {
   setTimeout(() => { xModal.classList.add("hide"); c.focus(); }, 500);
 });
 document.getElementById("letterNext").addEventListener("click", nextLetter);
@@ -1493,22 +1446,12 @@ document.getElementById("passCopy").addEventListener("click", async () => {
   document.getElementById("passNote").textContent = (await copyText(passText())) ? "CARD COPIED" : "COPY FAILED";
 });
 document.getElementById("passShare").addEventListener("click", () => {
-  const url = "https://x.com/intent/post?text=" + encodeURIComponent(passText());
-  if (isMobile() && /Android/i.test(navigator.userAgent || "")) openX(url, "SHARE ON X");
-  else {
-    const popup = window.open(url, "_blank", "noopener");
-    if (!popup) showXCard(url, "SHARE ON X");
-  }
+  launchX("https://x.com/intent/post?text=" + encodeURIComponent(passText()), "SHARE ON X");
 });
 for (const b of document.querySelectorAll("[data-share]")) b.addEventListener("click", async () => {
   const kind = b.dataset.share, msg = inviteMsg();
   if (kind === "x") {
-    const url = "https://x.com/intent/post?text=" + encodeURIComponent(msg);
-    if (isMobile() && /Android/i.test(navigator.userAgent || "")) openX(url);
-    else {
-      const popup = window.open(url, "_blank", "noopener");
-      if (!popup) showXCard(url, "SHARE ON X");
-    }
+    launchX("https://x.com/intent/post?text=" + encodeURIComponent(msg), "SHARE ON X");
     return;
   }
   if (kind === "wa") { window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank", "noopener"); return; }
